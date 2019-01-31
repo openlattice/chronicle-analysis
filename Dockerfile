@@ -13,6 +13,12 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-4.5.4-Linux-x86_
     rm ~/miniconda.sh
 
 RUN conda install pandas numpy
+RUN pip install auth0-python pyyaml
+
+WORKDIR /apiclients
+RUN git clone https://github.com/Lattice-Works/api-clients.git
+WORKDIR /apiclients/api-clients/python
+RUN python setup.py install
 
 RUN mkdir /chroniclepy
 ADD chroniclepy /chroniclepy
