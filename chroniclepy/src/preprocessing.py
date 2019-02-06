@@ -134,7 +134,7 @@ def extract_usage(filename,precision=3600):
         return alldata[cols].reset_index(drop=True)
 
 
-def check_overlap_add_sessions(data, session_def = 5*60):
+def check_overlap_add_sessions(data, session_def = [5*60]):
     '''
     Function to loop over dataset, spot overlaps (and remove them), and add columns
     to indicate whether a new session has been started or not.
@@ -155,7 +155,7 @@ def check_overlap_add_sessions(data, session_def = 5*60):
                 data.at[idx, 'engage_%is'%int(sess)] = 1
 
         # check time between previous and this app usage
-        nousetime = row['start_timestamp']-data['end_timestamp'].iloc[idx-1]
+        nousetime = row['start_timestamp'].astimezone(timezone("CET"))-data['end_timestamp'].iloc[idx-1].astimezone(timezone("CET"))
 
         # check overlap
         if nousetime < timedelta(microseconds=0) and row['start_timestamp'].date == row['end_timestamp'].date:
@@ -181,7 +181,7 @@ def check_overlap_add_sessions(data, session_def = 5*60):
         data.at[idx,'switch_app'] = 1-(row['app_fullname']==data['app_fullname'].iloc[idx-1])*1
     return data.reset_index(drop=True)
 
-def preprocess(infolder,outfolder,precision=3600,sessioninterval = 5*60):
+def preprocess(infolder,outfolder,precision=3600,sessioninterval = [5*60]):
 
     if not os.path.exists(outfolder):
         os.mkdir(outfolder)
