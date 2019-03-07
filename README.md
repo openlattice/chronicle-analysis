@@ -146,3 +146,9 @@ If a subsetfile is provided, the output summary files will have a prefix equal t
             --precision=630 \
             --sessioninterval=300 \
             --includestartend --splitweek --weekdefinition='weekdayMF'
+
+
+## Build container
+
+docker build -t openlattice/chroniclepy:v1.1-rc1 . --no-cache
+docker push openlattice/chroniclepy:v1.1-rc1
