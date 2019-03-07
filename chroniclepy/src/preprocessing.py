@@ -26,6 +26,8 @@ def read_and_clean_data(filenm):
         utils.logger("WARNING: File %s has no timezone information.  Registering reported time."%filenm)
         thisdata['ol.timezone'] = "UTC"
     thisdata = thisdata[['general.fullname','ol.recordtype','ol.datelogged','person','ol.timezone']]
+    # fill timezone by preceding timezone and then backwards
+    thisdata = thisdata.sort_values(by="ol.datelogged").reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
     thisdata['dt_logged'] = thisdata.apply(utils.get_dt,axis=1)
     thisdata['action'] = thisdata.apply(utils.get_action,axis=1)
     thisdata = thisdata.sort_values(by=['dt_logged','action']).reset_index(drop=True)
