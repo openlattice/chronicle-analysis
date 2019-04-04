@@ -151,5 +151,5 @@ If a subsetfile is provided, the output summary files will have a prefix equal t
 
 ## Build container
 
-docker build -t openlattice/chroniclepy:v1.1-rc2 . --no-cache
-docker push openlattice/chroniclepy:v1.1-rc2
+      docker build -t openlattice/chroniclepy:v1.1-rc2 . --no-cache
+      docker push openlattice/chroniclepy:v1.1-rc2
