@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-from argparse import ArgumentParser
 from chroniclepy import preprocessing, summarising
+from argparse import ArgumentParser
 import os
 
 def get_parser():
@@ -32,6 +32,9 @@ def get_parser():
     summaryargs.add_argument('--subsetfile',action='store', default=None,
         help = 'a csv file with one column named "fullname" \
         with a column with 1/0 coding which apps to include in the summary statistics.')
+    summaryargs.add_argument('--removefile',action='store', default=None,
+        help = 'a csv file with one column named "fullname" \
+        to indicate which apps to remove in the summary statistics.')
     summaryargs.add_argument('--fullapplistfile',action='store', default=None,
         help = 'a csv file that will be written with all applications \
         (to prepare/complete the recodefile).')
@@ -71,6 +74,7 @@ def main():
             outfolder = opts.output_dir,
             includestartend = opts.includestartend,
             recodefile = opts.recodefile,
+            removefile = opts.removefile,
             subsetfile = opts.subsetfile,
             fullapplistfile = opts.fullapplistfile,
             quarterly = opts.quarterly,

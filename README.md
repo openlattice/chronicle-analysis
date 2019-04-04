@@ -59,6 +59,7 @@ If you'd want to set a folder as an environment variable for easier readability,
 - Summary arguments:
     - `--recodefile`: This is a file that has some more information on apps, for example categorisation.  This information will be added to the preprocessed data.  Refer to the example data for the exact format: the file needs one column `full_name` that has the apps, and the other columns are recode columns.  Summary statistics will be separately computed for all unique values in the recode columns.  Note that if a column is present with many different values, the program could get stuck on calculating statistics for all of these values.
     - `--subsetfile`: This is a file to select a specific subset of apps.  The format is the same as the recodefile, but is at this point restricted to one column.
+    - `--removefile`: This is a file to remove a specific subset of apps.  The format is the same as the recodefile: a column with header `full_name` with names of apps.
     - `--fullapplistfile`: This is a file that will be written with all applications (to prepare/complete the recodefile).
     - `--includestartend`: Flag to include the first and last day.  These are cut off by default to keep the summary unbiased (due to missing data in the beginning of the start date or the end of the end date).
     - `--splitweek`: Flag to include the analyse separately week and weekend.  Requires argument `weekdefinition`.
@@ -140,9 +141,9 @@ If a subsetfile is provided, the output summary files will have a prefix equal t
             $FOLDER/rawdata \
             $FOLDER/preprocessed \
             $FOLDER/output \
-            --recodefile=$FOLDER\categorisation_mod.csv \
-            --fullapplistfile=$FOLDER\categorisation_mod.csv \
-            --subsetfile=$FOLDER/subset.csv \
+            --recodefile=$FOLDER\categorisation.csv \
+            --fullapplistfile=$FOLDER\categorisation.csv \
+            --removefile=$FOLDER\remove.csv \
             --precision=630 \
             --sessioninterval=300 \
             --includestartend --splitweek --weekdefinition='weekdayMF'
@@ -150,5 +151,5 @@ If a subsetfile is provided, the output summary files will have a prefix equal t
 
 ## Build container
 
-docker build -t openlattice/chroniclepy:v1.1-rc1 . --no-cache
-docker push openlattice/chroniclepy:v1.1-rc1
+docker build -t openlattice/chroniclepy:v1.1-rc2 . --no-cache
+docker push openlattice/chroniclepy:v1.1-rc2
