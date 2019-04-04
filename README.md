@@ -76,7 +76,7 @@ An example statement for the example data with all custom arguments:
       $FOLDER/output \
       --recodefile=$FOLDER\categorisation.csv \
       --fullapplistfile=$FOLDER\applist.csv \
-      --subsetfile=$FOLDER/subset.csv \
+      --removefile=$FOLDER/remove.csv \
       --precision=630 \
       --sessioninterval=300 \
       --includestartend --splitweek --weekdefinition='weekdayMF'

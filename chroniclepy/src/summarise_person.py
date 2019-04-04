@@ -5,7 +5,7 @@ import numpy as np
 import os
 import re
 
-def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = True, weekdefinition = 'weekdayMF', recodefile=None, subsetfile=None, includestartend = False):
+def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = True, weekdefinition = 'weekdayMF', recodefile=None, subsetfile=None, removefile=None, includestartend = False):
 
     # this needs to happen **before** subsetting
     preprocessed = utils.add_session_durations(preprocessed)
@@ -20,6 +20,11 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
         subsetname = list(subset.columns)[0]
         apps = list(subset.index[subset[subsetname]=='1'])
         preprocessed = preprocessed[preprocessed.app_fullname.isin(apps)].reset_index(drop=True)
+
+    if isinstance(removefile,str):
+        remove = pd.read_csv(removefile)['full_name']
+        apps = list(remove)
+        preprocessed = preprocessed[~preprocessed.app_fullname.isin(apps)].reset_index(drop=True)
 
     if isinstance(recodefile,str):
         recode = pd.read_csv(recodefile,index_col='full_name').astype(str)
@@ -41,7 +46,7 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
     engageall = [x for x in preprocessed.columns if x.startswith('engage')]
     noncustom = set(stdcols).union(set(engageall))
     custom = set(preprocessed.columns)-noncustom
-
+    
     for col in engagecols:
         preprocessed[col] = preprocessed[col].astype(int)
 
@@ -79,6 +84,3 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
         data[key]['participant_id'] = personID
 
     return data
-    #
-# for key,values in data.items():
-#     print(values.columns)

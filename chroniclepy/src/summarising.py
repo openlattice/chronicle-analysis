@@ -7,7 +7,7 @@ import numpy as np
 import os
 import re
 
-def summary(infolder, outfolder, includestartend=False, recodefile=None, subsetfile=None, fullapplistfile=None, quarterly = False, splitweek = True, weekdefinition = 'weekdayMF'):
+def summary(infolder, outfolder, includestartend=False, recodefile=None, removefile=None, subsetfile=None, fullapplistfile=None, quarterly = False, splitweek = True, weekdefinition = 'weekdayMF'):
 
     if not os.path.exists(outfolder):
         os.mkdir(outfolder)
@@ -32,6 +32,7 @@ def summary(infolder, outfolder, includestartend=False, recodefile=None, subsetf
             splitweek = splitweek,
             weekdefinition = weekdefinition,
             subsetfile = subsetfile,
+            removefile = removefile,
             recodefile = recodefile,
             includestartend = includestartend
             )
