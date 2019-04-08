@@ -5,7 +5,7 @@ import numpy as np
 import os
 import re
 
-def summarise_daily(dataset,engagecols):
+def summarise_daily(dataset,engagecols, datelist):
 
     # simple daily aggregate functions
     dailyfunctions = {
@@ -24,7 +24,6 @@ def summarise_daily(dataset,engagecols):
     daily.index = pd.to_datetime(daily.index)
 
     # fill days of no usage
-    datelist = pd.date_range(start = np.min(dataset.start_timestamp).date(), end = np.max(dataset.end_timestamp).date(), freq='D')
     daily = utils.fill_dates(daily, datelist)
 
     return daily

@@ -10,9 +10,11 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
     # this needs to happen **before** subsetting
     preprocessed = utils.add_session_durations(preprocessed)
 
+    datelist = pd.date_range(start = np.min(preprocessed.start_timestamp).date(), end = np.max(preprocessed.end_timestamp).date(), freq='D')
     if not includestartend:
         preprocessed = utils.cut_first_last(preprocessed).reset_index(drop=True)
-
+        datelist = datelist[1:(len(datelist)-1)]
+    
     if isinstance(subsetfile,str):
         subset = pd.read_csv(subsetfile,index_col='full_name').astype(str)
         if len(subset.columns)>1:
@@ -51,7 +53,7 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
         preprocessed[col] = preprocessed[col].astype(int)
 
     data = {}
-    data['daily'] = summarise_modalities.summarise_daily(preprocessed,engagecols)
+    data['daily'] = summarise_modalities.summarise_daily(preprocessed,engagecols, datelist)
     data['hourly'] = summarise_modalities.summarise_hourly(preprocessed,engagecols)
 
     if len(noncustom) > 0:
@@ -63,13 +65,13 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
 
     if splitweek:
         if np.sum(preprocessed[weekdefinition]==1) > 0:
-            data['week'] = summarise_modalities.summarise_daily(preprocessed[preprocessed[weekdefinition]==1].reset_index(drop=True),engagecols)
+            data['week'] = summarise_modalities.summarise_daily(preprocessed[preprocessed[weekdefinition]==1].reset_index(drop=True),engagecols, datelist)
             data['week'].columns = ['%s'%x for x in data['week'].columns]
             if len(custom) > 0:
                 weekapp = summarise_modalities.summarise_recodes(preprocessed[preprocessed[weekdefinition]==1],custom,quarterly=False,hourly=False)
                 data['appcoding_week'] = weekapp['appcoding_daily']
         if np.sum(preprocessed[weekdefinition]==0) > 0:
-            data['weekend'] = summarise_modalities.summarise_daily(preprocessed[preprocessed[weekdefinition]==0].reset_index(drop=True),engagecols)
+            data['weekend'] = summarise_modalities.summarise_daily(preprocessed[preprocessed[weekdefinition]==0].reset_index(drop=True),engagecols, datelist)
             data['weekend'].columns = ['%s'%x for x in data['weekend'].columns]
             if len(custom) > 0:
                 weekndapp = summarise_modalities.summarise_recodes(preprocessed[preprocessed[weekdefinition]==0],custom,quarterly=False,hourly=False)
