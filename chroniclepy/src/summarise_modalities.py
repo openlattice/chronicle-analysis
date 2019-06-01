@@ -44,7 +44,11 @@ def summarise_hourly(dataset,engagecols):
     hourly.columns = cols
 
     # fill days/hours of no usage
-    datelist = pd.date_range(start = np.min(dataset.start_timestamp).date(), end = np.max(dataset.end_timestamp).date(), freq='D')
+    begin = np.min(dataset.start_timestamp).date()
+    end = np.max(dataset.end_timestamp).date()
+    if len(hourly) == 0:
+        return hourly
+    datelist = pd.date_range(start = begin, end = end, freq='D')
     hourly = utils.fill_hours(hourly,datelist)
 
     # unstack hour index (long to wide)

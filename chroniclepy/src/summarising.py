@@ -7,7 +7,7 @@ import numpy as np
 import os
 import re
 
-def summary(infolder, outfolder, includestartend=False, recodefile=None, removefile=None, subsetfile=None, fullapplistfile=None, quarterly = False, splitweek = True, weekdefinition = 'weekdayMF'):
+def summary(infolder, outfolder, includestartend=False, recodefile=None, fullapplistfile=None, quarterly = False, splitweek = True, weekdefinition = 'weekdayMF'):
 
     if not os.path.exists(outfolder):
         os.mkdir(outfolder)
@@ -31,8 +31,6 @@ def summary(infolder, outfolder, includestartend=False, recodefile=None, removef
             quarterly = quarterly,
             splitweek = splitweek,
             weekdefinition = weekdefinition,
-            subsetfile = subsetfile,
-            removefile = removefile,
             recodefile = recodefile,
             includestartend = includestartend
             )
@@ -54,19 +52,13 @@ def summary(infolder, outfolder, includestartend=False, recodefile=None, removef
         'appcoding_weekend':['mean']
     }
 
-    # get prefix for subset for naming
-    prefix = ""
-    if isinstance(subsetfile,str):
-        subset = pd.read_csv(subsetfile,index_col='full_name').astype(str)
-        prefix = "%s_"%list(subset.columns)[0]
-
     # run over all datasets, summarise and save
     for k,v in full.items():
         summary = v.fillna(0).groupby('participant_id').agg(aggfuncs[k])
         summary.columns = ['_'.join(col).strip() for col in summary.columns.values]
         if k == 'daily':
             summary['num_days'] = v[['dur','participant_id']].groupby('participant_id').agg(['count'])
-        summary.to_csv(os.path.join(outfolder,"%ssummary_%s.csv"%(prefix,k)))
+        summary.to_csv(os.path.join(outfolder,"summary_%s.csv"%(k)))
 
     if isinstance(fullapplistfile,str):
         fullapplist = pd.DataFrame({"full_name": list(allapps)})

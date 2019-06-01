@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
-from chroniclepy import preprocessing, summarising
+from chroniclepy import preprocessing, subsetting, summarising
 from argparse import ArgumentParser
+import json
 import os
 
 def get_parser():
@@ -12,6 +13,8 @@ def get_parser():
         help = 'the folder with data files (csv\'s).')
     parser.add_argument('preproc_dir', action='store',
         help = 'the folder to write preprocessed files.')
+    parser.add_argument('subset_dir', action='store',
+        help = 'the folder to write subsetted files.')
     parser.add_argument('output_dir', action='store',
         help = 'the folder to write output files.')
 
@@ -24,17 +27,23 @@ def get_parser():
         help = 'the interval (in seconds) that define the start of a new session, i.e. \
             how long should the break be between 2 sessions of phone usages to be considered \
             a new session.')
+    prepargs.add_argument('--log_dir', action='store', default=None, 
+        help = 'the folder to write log files.')
+    prepargs.add_argument('--log_options', action='store', default="", 
+        help = 'the options for logging.  Should be a dictionary, eg. {"log_exceed_durations_minutes": [15, 30]}.')
+
+    subargs = parser.add_argument_group('Options for subsetting the data.')
+    subargs.add_argument('--subsetfile',action='store', default=None,
+        help = 'a csv file with one column named "fullname" \
+        with a column with 1/0 coding which apps to include in the summary statistics.')
+    subargs.add_argument('--removefile',action='store', default=None,
+        help = 'a csv file with one column named "fullname" \
+        to indicate which apps to remove in the summary statistics.')
 
     summaryargs = parser.add_argument_group('Options for summarising the data.')
     summaryargs.add_argument('--recodefile',action='store', default=None,
         help = 'a csv file with one column named "fullname" \
         with transformations of the apps (eg. category codes, other names,...)')
-    summaryargs.add_argument('--subsetfile',action='store', default=None,
-        help = 'a csv file with one column named "fullname" \
-        with a column with 1/0 coding which apps to include in the summary statistics.')
-    summaryargs.add_argument('--removefile',action='store', default=None,
-        help = 'a csv file with one column named "fullname" \
-        to indicate which apps to remove in the summary statistics.')
     summaryargs.add_argument('--fullapplistfile',action='store', default=None,
         help = 'a csv file that will be written with all applications \
         (to prepare/complete the recodefile).')
@@ -51,13 +60,26 @@ def get_parser():
 
 def main():
     opts = get_parser().parse_args()
-
+    
     if opts.stage=='preprocessing' or opts.stage=='all':
+        if (opts.log_options != "") and not isinstance(opts.log_dir, str):
+            raise ValueError("You specified a logging options, but no directory to write logs.")
         preprocessing.preprocess(
             infolder = opts.input_dir,
             outfolder = opts.preproc_dir,
             precision = opts.precision,
-            sessioninterval = [int(x) for x in opts.sessioninterval]
+            sessioninterval = [int(x) for x in opts.sessioninterval],
+            logdir = opts.log_dir,
+            logopts = {} if opts.log_options == "" else json.loads(opts.log_options)
+            )
+    
+    if opts.stage == "subsetting" or opts.stage=="all":
+        if (isinstance(opts.subsetfile,str) or isinstance(opts.removefile,str)):
+            subsetting.subset(
+                infolder = opts.preproc_dir,
+                outfolder = opts.subset_dir,
+                removefile=opts.removefile, 
+                subsetfile = opts.subsetfile
             )
 
     if opts.stage=='summary' or opts.stage=='all':
@@ -68,14 +90,13 @@ def main():
                 raise ValueError("Unknown weekday definition !")
         if opts.splitweek and not isinstance(opts.weekdefinition,str):
             raise ValueError("Please specify the weekdefinition if you want !")
+    
 
         summarising.summary(
-            infolder = opts.preproc_dir,
+            infolder = opts.subset_dir if (isinstance(opts.subsetfile,str) or isinstance(opts.removefile,str)) else opts.preproc_dir,
             outfolder = opts.output_dir,
             includestartend = opts.includestartend,
             recodefile = opts.recodefile,
-            removefile = opts.removefile,
-            subsetfile = opts.subsetfile,
             fullapplistfile = opts.fullapplistfile,
             quarterly = opts.quarterly,
             splitweek = opts.splitweek,

@@ -5,29 +5,13 @@ import numpy as np
 import os
 import re
 
-def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = True, weekdefinition = 'weekdayMF', recodefile=None, subsetfile=None, removefile=None, includestartend = False):
+def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = True, weekdefinition = 'weekdayMF', recodefile=None, includestartend = False):
 
-    # this needs to happen **before** subsetting
-    preprocessed = utils.add_session_durations(preprocessed)
-
-    datelist = pd.date_range(start = np.min(preprocessed.start_timestamp).date(), end = np.max(preprocessed.end_timestamp).date(), freq='D')
+    datelist = pd.date_range(start = preprocessed.firstdate.iloc[0], end = preprocessed.lastdate.iloc[0], freq='D')
     if not includestartend:
-        preprocessed = utils.cut_first_last(preprocessed).reset_index(drop=True)
+        preprocessed = utils.cut_first_last(preprocessed, first = preprocessed.firstdate.iloc[0], last = preprocessed.lastdate.iloc[0]).reset_index(drop=True)
         datelist = datelist[1:(len(datelist)-1)]
     
-    if isinstance(subsetfile,str):
-        subset = pd.read_csv(subsetfile,index_col='full_name').astype(str)
-        if len(subset.columns)>1:
-            utils.logger("WARNING: only 1 subset can be defined at a time.  Only the first column of the subset file will be used.")
-        subsetname = list(subset.columns)[0]
-        apps = list(subset.index[subset[subsetname]=='1'])
-        preprocessed = preprocessed[preprocessed.app_fullname.isin(apps)].reset_index(drop=True)
-
-    if isinstance(removefile,str):
-        remove = pd.read_csv(removefile)['full_name']
-        apps = list(remove)
-        preprocessed = preprocessed[~preprocessed.app_fullname.isin(apps)].reset_index(drop=True)
-
     if isinstance(recodefile,str):
         recode = pd.read_csv(recodefile,index_col='full_name').astype(str)
         newcols = preprocessed.apply(lambda x: utils.recode(x,recode),axis=1)
@@ -43,7 +27,7 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
     stdcols = ['participant_id', 'app_fullname', 'date', 'start_timestamp',
            'end_timestamp', 'day', 'hour', 'quarter',
            'duration_seconds', 'weekdayMTh', 'weekdaySTh', 'weekdayMF', 'switch_app',
-           'endtime', 'starttime', 'duration_minutes', 'index']
+           'endtime', 'starttime', 'duration_minutes', 'index', 'firstdate', 'lastdate']
     engagecols = [x for x in preprocessed.columns if x.startswith('engage') and not x.endswith('dur')]
     engageall = [x for x in preprocessed.columns if x.startswith('engage')]
     noncustom = set(stdcols).union(set(engageall))

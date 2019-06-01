@@ -68,7 +68,6 @@ def get_timestamps(prevtime,curtime,row=None,precision=60):
             "quarter": int(np.floor(starttime.minute/15.))+1,
             "duration_seconds": (endtime-starttime).seconds
         }
-
         outmetrics['participant_id'] = row['person']
         outmetrics['app_fullname'] = row['general.fullname']
 
@@ -108,6 +107,7 @@ def extract_usage(filename,precision=3600):
 
         # decode timestamp and correct for timezone
         curtime = row.dt_logged
+        curtime_zulustring = curtime.astimezone(tz=timezone("UTC")).strftime("%Y-%m-%d %H:%M:%S")
 
         if interaction == 'Move to Foreground':
             openapps[app] = {"open" : True,
@@ -127,9 +127,32 @@ def extract_usage(filename,precision=3600):
                 timepoints = get_timestamps(prevtime,curtime,precision=precision,row=row)
 
                 alldata = pd.concat([alldata,timepoints])
+                
+                openapps[app] = {"open": False}
+            
+            # check if anything else is open
+            
+            for olderapp, appdata in openapps.items():
+                                        
+                if appdata['open'] == True:
+                    
+                    utils.logger("WARNING: App %s is moved to background on %s but %s was still open.  Closing %s now..."%(
+                        app, curtime_zulustring, olderapp, olderapp))
 
+                    # get time of opening
+                    prevtime = appdata['time']
 
-            openapps[app] = {"open": False}
+                    # split up timepoints by precision
+                    olderinfo = {
+                        "person": row['person'],
+                        "general.fullname": olderapp
+                    }
+                    
+                    timepoints = get_timestamps(prevtime,curtime,precision=precision,row= olderinfo)
+
+                    alldata = pd.concat([alldata,timepoints])
+                    
+                    openapps[olderapp]['open'] = False
 
     if len(alldata)>0:
         alldata = alldata.sort_values(by=['start_timestamp','end_timestamp']).reset_index(drop=True)
@@ -181,9 +204,21 @@ def check_overlap_add_sessions(data, session_def = [5*60]):
 
         # check appswitch
         data.at[idx,'switch_app'] = 1-(row['app_fullname']==data['app_fullname'].iloc[idx-1])*1
+        data['firstdate'] = min(data['start_timestamp']).date()
+        data['lastdate'] = max(data['end_timestamp']).date()
     return data.reset_index(drop=True)
 
-def preprocess(infolder,outfolder,precision=3600,sessioninterval = [5*60]):
+def log_exceed_durations_minutes(row, threshold, outfile):
+    timestamp = row['start_timestamp'].astimezone(tz=timezone("UTC")).strftime("%Y-%m-%d %H:%M:%S")
+    with open(outfile, "a+") as fl:
+        fl.write("Person {participant} used {app} more than {threshold} minutes on {timestamp}\n".format(
+            participant = row['participant_id'],
+            app = row['app_fullname'],
+            threshold = threshold,
+            timestamp = timestamp
+        ))
+
+def preprocess(infolder,outfolder,precision=3600,sessioninterval = [5*60], logdir=None, logopts=None):
 
     if not os.path.exists(outfolder):
         os.mkdir(outfolder)
@@ -196,5 +231,16 @@ def preprocess(infolder,outfolder,precision=3600,sessioninterval = [5*60]):
             continue
         data = check_overlap_add_sessions(tmp,session_def=sessioninterval)
         data['duration_minutes'] = data['duration_seconds']/60.
+        data = utils.add_session_durations(data)
+        
+        if 'log_exceed_durations_minutes' in logopts.keys():
+            if not os.path.exists(logdir):
+                os.mkdir(logdir)
+            for threshold in logopts['log_exceed_durations_minutes']:
+                subset = data[data.duration_minutes > float(threshold)]
+                outfile = os.path.join(logdir, "log_exceed_durations_minutes_%s.txt"%threshold)
+                if len(subset) > 0:
+                    data[data.duration_minutes > threshold].apply(lambda y: log_exceed_durations_minutes(y, threshold, outfile), axis=1)
+                
         outfilename = filename.replace('ChronicleData','ChronicleData_preprocessed')
         data.to_csv(os.path.join(outfolder,outfilename),index=False)
