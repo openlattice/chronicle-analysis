@@ -19,7 +19,7 @@ This will pull our container from https://hub.docker.com/r/openlattice/chronicle
 Click the button `clone or download` on github and click `Download ZIP`. Extract.
 For what's next, we're assuming the data is in in `/Users/openlattice/chroniclepy/examples/`.   For your local application, replace `/Users/openlattice/chroniclepy/examples/` with the directory you put the data in.
 
-### Run preprocessing and summary
+### Run preprocessing, subsetting and summary
 
 To run the data processing, run in the terminal:
 
@@ -29,11 +29,13 @@ To run the data processing, run in the terminal:
       all \
       /Users/openlattice/chroniclepy/examples/rawdata \
       /Users/openlattice/chroniclepy/examples/preprocessed \
+      /Users/openlattice/chroniclepy/examples/subsetted \
       /Users/openlattice/chroniclepy/examples/output
 
 If you'd want to set a folder as an environment variable for easier readability, you could run:
 
     FOLDER=/Users/openlattice/chroniclepy/examples/
+    FOLDER=/Users/jokedurnez/Documents/accounts/CAFE/CAFE_code/chronicle/examples/
 
     docker run \
       -v $FOLDER:$FOLDER \
@@ -41,6 +43,7 @@ If you'd want to set a folder as an environment variable for easier readability,
       all \
       $FOLDER/rawdata \
       $FOLDER/preprocessed \
+      $FOLDER/subsetted \
       $FOLDER/output
 
 ##### A little bit of explanation of the parts  of this statement:
@@ -50,16 +53,20 @@ If you'd want to set a folder as an environment variable for easier readability,
 - `all`: To run the everything.  You can also separately run `preprocessing` and `summary`
 - `$FOLDER/rawdata`: This is the folder where the raw data sits (the data you can download on the chronicle website).
 - `$FOLDER/preprocessed`.  This is the folder where the preprocessed data will go to.
+- `$FOLDER/subsetted`.  This is the folder where the subsetted data will go to.  **You need to define this folder even if you're not subsetting**.
 - `$FOLDER/output`.  This is the folder where the preprocessed data will go to.
 
 ##### There are a few additional parameters passed to the program.
 - Preprocessing arguments:
     - `--precision`: This is the precision in seconds.  This default is 3600 seconds (1 hour).  This means that when an app was used when the hour was passed (eg. 21.45-22.15), the data will be split up in two lines: *21.45-22.00* and *22.00-22.15*.  This allows to analyze the data by any time unit (eg. seconds for biophysical data, quarters for diary data,...).
     - `--sessioninterval`: This is the minimal interval (in seconds) of non-activity for an engagement to be considered a *new* engagement.  There can be multiple session intervals defined (i.e. `--sessioninterval=60 --sessioninterval=300`).  The default is 60 seconds (1 minute).
-- Summary arguments:
-    - `--recodefile`: This is a file that has some more information on apps, for example categorisation.  This information will be added to the preprocessed data.  Refer to the example data for the exact format: the file needs one column `full_name` that has the apps, and the other columns are recode columns.  Summary statistics will be separately computed for all unique values in the recode columns.  Note that if a column is present with many different values, the program could get stuck on calculating statistics for all of these values.
+    - `--log_dir`: The directory where custom logs are put.
+    - `--log_options`: Options for custom logs.  Example: `'{"log_exceed_durations_minutes": [5, 15]}'` will export a file with all app-usages over 5 and over 15 minutes. (watch out, the apostrophies need to match this format)
+- Subsetting arguments:
     - `--subsetfile`: This is a file to select a specific subset of apps.  The format is the same as the recodefile, but is at this point restricted to one column.
     - `--removefile`: This is a file to remove a specific subset of apps.  The format is the same as the recodefile: a column with header `full_name` with names of apps.
+- Summary arguments:
+    - `--recodefile`: This is a file that has some more information on apps, for example categorisation.  This information will be added to the preprocessed data.  Refer to the example data for the exact format: the file needs one column `full_name` that has the apps, and the other columns are recode columns.  Summary statistics will be separately computed for all unique values in the recode columns.  Note that if a column is present with many different values, the program could get stuck on calculating statistics for all of these values.
     - `--fullapplistfile`: This is a file that will be written with all applications (to prepare/complete the recodefile).
     - `--includestartend`: Flag to include the first and last day.  These are cut off by default to keep the summary unbiased (due to missing data in the beginning of the start date or the end of the end date).
     - `--splitweek`: Flag to include the analyse separately week and weekend.  Requires argument `weekdefinition`.
@@ -69,17 +76,20 @@ An example statement for the example data with all custom arguments:
 
     docker run -it \
       -v $FOLDER:$FOLDER \
-      openlattice/chroniclepy \
+      # for local development
+      # -v /Users/jokedurnez/Documents/accounts/CAFE/CAFE_code/chronicle/src/:/opt/conda/lib/python3.7/site-packages/chroniclepy-1.2-py3.7/ \
+      openlattice/chroniclepy:v0.2 \
       all \
       $FOLDER/rawdata \
       $FOLDER/preprocessed \
+      $FOLDER/subsetted \
       $FOLDER/output \
-      --recodefile=$FOLDER\categorisation.csv \
-      --fullapplistfile=$FOLDER\applist.csv \
-      --removefile=$FOLDER/remove.csv \
       --precision=630 \
       --sessioninterval=300 \
-      --includestartend --splitweek --weekdefinition='weekdayMF'
+      --splitweek --weekdefinition='weekdayMF' \
+      --log_dir=$FOLDER/logs \
+      --log_options='{"log_exceed_durations_minutes": [5, 15]}'
+      
 
 ## Description of output
 
@@ -102,6 +112,10 @@ When running the preprocessing, the data is transformed into a table for each pa
 - *duration_seconds:* Duration (in seconds)
 - *duration_minutes:* Duration (in minutes)
 - *new_engage_(duration):* Whether a new session was initiated with this app usage based on the definition(s) of sessioninterval.
+
+#### Subsetted data
+
+The subsetted data looks exactly like the preprocessed data, but only for a subset of the apps.
 
 #### Summary data
 
@@ -140,6 +154,7 @@ If a subsetfile is provided, the output summary files will have a prefix equal t
           python -i run.py all \
             $FOLDER/rawdata \
             $FOLDER/preprocessed \
+            $FOLDER/subsetted \
             $FOLDER/output \
             --recodefile=$FOLDER\categorisation.csv \
             --fullapplistfile=$FOLDER\categorisation.csv \
@@ -148,8 +163,7 @@ If a subsetfile is provided, the output summary files will have a prefix equal t
             --sessioninterval=300 \
             --includestartend --splitweek --weekdefinition='weekdayMF'
 
-
 ## Build container
 
-      docker build -t openlattice/chroniclepy:v1.1-rc2 . --no-cache
-      docker push openlattice/chroniclepy:v1.1-rc2
+      docker build -t openlattice/chroniclepy . --no-cache
+      docker push openlattice/chroniclepy
