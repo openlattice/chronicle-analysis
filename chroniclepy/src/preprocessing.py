@@ -113,6 +113,31 @@ def extract_usage(filename,precision=3600):
             openapps[app] = {"open" : True,
                              "time": curtime}
 
+            for olderapp, appdata in openapps.items():
+                
+                if app == olderapp:
+                    continue
+                                        
+                if appdata['open'] == True:
+                    
+                    utils.logger("WARNING: App %s is moved to foreground on %s but %s was still open.  Closing %s now..."%(
+                        app, curtime_zulustring, olderapp, olderapp))
+
+                    # get time of opening
+                    prevtime = appdata['time']
+
+                    # split up timepoints by precision
+                    olderinfo = {
+                        "person": row['person'],
+                        "general.fullname": olderapp
+                    }
+                    
+                    timepoints = get_timestamps(prevtime,curtime,precision=precision,row= olderinfo)
+
+                    alldata = pd.concat([alldata,timepoints])
+                    
+                    openapps[olderapp]['open'] = False
+
         if interaction == 'Move to Background':
 
             if app in openapps.keys() and openapps[app]['open']==True:
