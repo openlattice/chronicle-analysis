@@ -5,6 +5,6 @@
 * add option for removing apps
 
 1.2 - 05/26/2019
-* when two applications are overlapping, close off the first when the second starts
+* when two applications are overlapping, discard the first when the second starts instead of closing
 * subsetting was extracted into a different step, this allows for subsetting per person before summarising
 * better logs
