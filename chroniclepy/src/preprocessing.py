@@ -30,7 +30,7 @@ def read_and_clean_data(filenm):
     thisdata = thisdata.sort_values(by="ol.datelogged").reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
     thisdata['dt_logged'] = thisdata.apply(utils.get_dt,axis=1)
     thisdata['action'] = thisdata.apply(utils.get_action,axis=1)
-    thisdata = thisdata.sort_values(by=['dt_logged','action']).reset_index(drop=True)
+    thisdata = thisdata.sort_values(by=['dt_logged','general.fullname', 'action']).reset_index(drop=True)
     return thisdata.drop(['action'],axis=1)
 
 def get_timestamps(prevtime,curtime,row=None,precision=60):
@@ -118,25 +118,12 @@ def extract_usage(filename,precision=3600):
                 if app == olderapp:
                     continue
                                         
-                if appdata['open'] == True:
+                if appdata['open'] == True and appdata['time'] < curtime:
                     
-                    utils.logger("WARNING: App %s is moved to foreground on %s but %s was still open.  Closing %s now..."%(
+                    utils.logger("WARNING: App %s is moved to foreground on %s but %s was still open.  Discarding %s now..."%(
                         app, curtime_zulustring, olderapp, olderapp))
 
-                    # get time of opening
-                    prevtime = appdata['time']
-
-                    # split up timepoints by precision
-                    olderinfo = {
-                        "person": row['person'],
-                        "general.fullname": olderapp
-                    }
-                    
-                    timepoints = get_timestamps(prevtime,curtime,precision=precision,row= olderinfo)
-
-                    alldata = pd.concat([alldata,timepoints])
-                    
-                    openapps[olderapp]['open'] = False
+                    openapps[olderapp] = {"open": False}
 
         if interaction == 'Move to Background':
 
@@ -159,25 +146,12 @@ def extract_usage(filename,precision=3600):
             
             for olderapp, appdata in openapps.items():
                                         
-                if appdata['open'] == True:
+                if appdata['open'] == True and appdata['time'] < curtime:
                     
-                    utils.logger("WARNING: App %s is moved to background on %s but %s was still open.  Closing %s now..."%(
+                    utils.logger("WARNING: App %s is moved to background on %s but %s was still open.  Discarding %s now..."%(
                         app, curtime_zulustring, olderapp, olderapp))
 
-                    # get time of opening
-                    prevtime = appdata['time']
-
-                    # split up timepoints by precision
-                    olderinfo = {
-                        "person": row['person'],
-                        "general.fullname": olderapp
-                    }
-                    
-                    timepoints = get_timestamps(prevtime,curtime,precision=precision,row= olderinfo)
-
-                    alldata = pd.concat([alldata,timepoints])
-                    
-                    openapps[olderapp]['open'] = False
+                    openapps[olderapp] = {"open": False}
 
     if len(alldata)>0:
         alldata = alldata.sort_values(by=['start_timestamp','end_timestamp']).reset_index(drop=True)
@@ -265,7 +239,8 @@ def preprocess(infolder,outfolder,precision=3600,sessioninterval = [5*60], logdi
                 subset = data[data.duration_minutes > float(threshold)]
                 outfile = os.path.join(logdir, "log_exceed_durations_minutes_%s.txt"%threshold)
                 if len(subset) > 0:
-                    data[data.duration_minutes > threshold].apply(lambda y: log_exceed_durations_minutes(y, threshold, outfile), axis=1)
+                    for idx, row in data[data.duration_minutes > threshold].iterrows():
+                        log_exceed_durations_minutes(row, threshold, outfile)
                 
         outfilename = filename.replace('ChronicleData','ChronicleData_preprocessed')
         data.to_csv(os.path.join(outfolder,outfilename),index=False)
