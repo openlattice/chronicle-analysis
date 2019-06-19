@@ -126,8 +126,8 @@ def add_session_durations(dataset):
     for sescol in engagecols:
         newcol = '%s_dur'%sescol
         sesids = np.where(dataset[sescol]==1)[0][1:]
-        starttimes = np.array(dataset.start_timestamp.loc[np.append([0],sesids)][:-1])
-        endtimes = np.array(dataset.end_timestamp.loc[sesids-1])
+        starttimes = np.array(dataset.start_timestamp.loc[np.append([0],sesids)][:-1], dtype='datetime64[ns]')
+        endtimes = np.array(dataset.end_timestamp.loc[sesids-1], dtype='datetime64[ns]')
         durs = (endtimes-starttimes)/ np.timedelta64(1, 'm')
         dataset[newcol] = 0
         for idx,sesid in enumerate(np.append([0],sesids)):
