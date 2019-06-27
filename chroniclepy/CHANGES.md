@@ -8,3 +8,7 @@
 * when two applications are overlapping, discard the first when the second starts instead of closing
 * subsetting was extracted into a different step, this allows for subsetting per person before summarising
 * better logs
+
+1.2-rc1 - 06/27/2019
+* remove rounding of time
+* change way of sorting apps

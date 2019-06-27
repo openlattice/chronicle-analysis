@@ -21,8 +21,8 @@ def get_dt(row):
     except ValueError:
         zulutime = datetime.strptime(zulutime,"%Y-%m-%dT%H:%M:%S")
     localtime = zulutime.replace(tzinfo=timezone.utc).astimezone(tz=pytz.timezone(row['ol.timezone']))
-    microsecond = min(round(localtime.microsecond / 10000)*10000, 990000)
-    localtime = localtime.replace(microsecond = microsecond)
+    # microsecond = min(round(localtime.microsecond / 10000)*10000, 990000)
+    # localtime = localtime.replace(microsecond = microsecond)
     return localtime
 
 def get_action(row):

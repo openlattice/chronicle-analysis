@@ -30,7 +30,7 @@ def read_and_clean_data(filenm):
     thisdata = thisdata.sort_values(by="ol.datelogged").reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
     thisdata['dt_logged'] = thisdata.apply(utils.get_dt,axis=1)
     thisdata['action'] = thisdata.apply(utils.get_action,axis=1)
-    thisdata = thisdata.sort_values(by=['dt_logged','general.fullname', 'action']).reset_index(drop=True)
+    thisdata = thisdata.sort_values(by=['dt_logged', 'action']).reset_index(drop=True)
     return thisdata.drop(['action'],axis=1)
 
 def get_timestamps(prevtime,curtime,row=None,precision=60):
