@@ -142,17 +142,6 @@ def extract_usage(filename,precision=3600):
                 
                 openapps[app] = {"open": False}
             
-            # check if anything else is open
-            
-            for olderapp, appdata in openapps.items():
-                                        
-                if appdata['open'] == True and appdata['time'] < curtime:
-                    
-                    utils.logger("WARNING: App %s is moved to background on %s but %s was still open.  Discarding %s now..."%(
-                        app, curtime_zulustring, olderapp, olderapp))
-
-                    openapps[olderapp] = {"open": False}
-
     if len(alldata)>0:
         alldata = alldata.sort_values(by=['start_timestamp','end_timestamp']).reset_index(drop=True)
         return alldata[cols].reset_index(drop=True)

@@ -12,3 +12,7 @@
 1.2-rc1 - 06/27/2019
 * remove rounding of time
 * change way of sorting apps
+
+1.2-rc2 - 07/09/2019
+* only shut off app when another one is moved to foreground (not background)
+
