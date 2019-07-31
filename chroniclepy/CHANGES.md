@@ -16,3 +16,5 @@
 1.2-rc2 - 07/09/2019
 * only shut off app when another one is moved to foreground (not background)
 
+1.2-rc3 - 07/31/2019
+* fix bug based on new backend
