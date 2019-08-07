@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from collections import Counter
+import dateutil.parser
 import pandas as pd
 import numpy as np
 import pytz
@@ -13,13 +14,8 @@ def get_dt(row):
     - Time is rounded to 10 milliseconds, to make sure the apps are in the right order.
       A potential downside of this is that when a person closes and re-opens an app
       within 10 milliseconds, it will be regarded as closed.
-    '''
-
-    zulutime = row['ol.datelogged'].split("Z")[0]
-    try:
-        zulutime = datetime.strptime(zulutime,"%Y-%m-%dT%H:%M:%S.%f")
-    except ValueError:
-        zulutime = datetime.strptime(zulutime,"%Y-%m-%dT%H:%M:%S")
+    '''    
+    zulutime = dateutil.parser.parse(row['ol.datelogged'])
     localtime = zulutime.replace(tzinfo=timezone.utc).astimezone(tz=pytz.timezone(row['ol.timezone']))
     # microsecond = min(round(localtime.microsecond / 10000)*10000, 990000)
     # localtime = localtime.replace(microsecond = microsecond)
