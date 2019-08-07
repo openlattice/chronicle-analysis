@@ -1,12 +1,16 @@
 from chroniclepy import utils, summarise_modalities
 from collections import Counter
+from datetime import datetime
 import pandas as pd
 import numpy as np
 import os
 import re
 
-def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = True, weekdefinition = 'weekdayMF', recodefile=None, includestartend = False):
-
+def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = True, 
+    weekdefinition = 'weekdayMF', recodefile=None, includestartend = False,
+    splitday = False, daytime = "10:00", nighttime = "22:00"
+    ):
+    
     datelist = pd.date_range(start = preprocessed.firstdate.iloc[0], end = preprocessed.lastdate.iloc[0], freq='D')
     if not includestartend:
         preprocessed = utils.cut_first_last(preprocessed, first = preprocessed.firstdate.iloc[0], last = preprocessed.lastdate.iloc[0]).reset_index(drop=True)
@@ -27,7 +31,7 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
     stdcols = ['participant_id', 'app_fullname', 'date', 'start_timestamp',
            'end_timestamp', 'day', 'hour', 'quarter',
            'duration_seconds', 'weekdayMTh', 'weekdaySTh', 'weekdayMF', 'switch_app',
-           'endtime', 'starttime', 'duration_minutes', 'index', 'firstdate', 'lastdate']
+           'endtime', 'starttime', 'duration_minutes', 'index', 'firstdate', 'lastdate', 'study_id', 'Unnamed: 0']
     engagecols = [x for x in preprocessed.columns if x.startswith('engage') and not x.endswith('dur')]
     engageall = [x for x in preprocessed.columns if x.startswith('engage')]
     noncustom = set(stdcols).union(set(engageall))
@@ -60,6 +64,34 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
             if len(custom) > 0:
                 weekndapp = summarise_modalities.summarise_recodes(preprocessed[preprocessed[weekdefinition]==0],custom,quarterly=False,hourly=False)
                 data['appcoding_weekend'] = weekndapp['appcoding_daily']
+
+    if splitday:
+        daytime_dt = datetime.strptime(daytime, "%H:%M") 
+        nighttime_dt = datetime.strptime(nighttime, "%H:%M")
+    
+        # daytime
+        daytime_df = preprocessed[(preprocessed.start_timestamp.dt.time > daytime_dt.time()) & (preprocessed.start_timestamp.dt.time < nighttime_dt.time())]
+        
+        if len(daytime_df) > 0:
+            data['daytime'] = summarise_modalities.summarise_daily(daytime_df.reset_index(drop=True),engagecols, datelist)
+            data['daytime'].columns = ['%s'%x for x in data['daytime'].columns]
+            if len(custom) > 0:
+                dayapp = summarise_modalities.summarise_recodes(daytime_df,custom,quarterly=False,hourly=False)
+                data['appcoding_daytime'] = dayapp['appcoding_daily']
+        else:
+            utils.logger("WARNING: No daytime data for %s..."%personID,level=1)
+
+        # nighttime
+        nighttime_df = preprocessed[(preprocessed.start_timestamp < nighttime_dt) | (preprocessed.start_timestamp > nighttime_dt)]
+
+        if len(nighttime) > 0:
+            data['nighttime'] = summarise_modalities.summarise_daily(nighttime_df.reset_index(drop=True),engagecols, datelist)
+            data['nighttime'].columns = ['%s'%x for x in data['nighttime'].columns]
+            if len(custom) > 0:
+                nightapp = summarise_modalities.summarise_recodes(nighttime_df,custom,quarterly=False,hourly=False)
+                data['appcoding_nighttime'] = nightapp['appcoding_daily']
+        else:
+            utils.logger("WARNING: No nighttime data for %s..."%personID,level=1)
 
     for key,values in data.items():
         # get appsperminute
