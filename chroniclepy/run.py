@@ -56,6 +56,15 @@ def get_parser():
     summaryargs.add_argument('--weekdefinition', action='store', default='weekdayMF',
         help = 'One of "weekdayMF", "weekdayMTh", "weekdaySTh" to distinguish week and weekend\
         (only when using --splitweek flag)')
+    summaryargs.add_argument('--splitday', action='store_true', default=False,
+        help = 'flag to export summary statistics separately for daytime vs nighttime.')
+    summaryargs.add_argument('--daytime', action='store', default= '10:00',
+        help = 'What time does daytime start?  In 24h format (eg. 10:00)')
+    summaryargs.add_argument('--nighttime', action='store', default= '22:00',
+        help = 'What time does nighttime start?  In 24h format (eg. 22:00)')
+    summaryargs.add_argument('--maxdays', action='store', default=None, type=int,
+        help = "What is the maximum number of days you want to analyze per person?"
+    )
     return parser
 
 def main():
@@ -100,7 +109,11 @@ def main():
             fullapplistfile = opts.fullapplistfile,
             quarterly = opts.quarterly,
             splitweek = opts.splitweek,
-            weekdefinition = opts.weekdefinition
+            weekdefinition = opts.weekdefinition,
+            splitday = opts.splitday,
+            daytime = opts.daytime,
+            nighttime = opts.nighttime,
+            maxdays = opts.maxdays
         )
 
 if __name__ == '__main__':

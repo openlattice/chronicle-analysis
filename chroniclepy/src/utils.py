@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from collections import Counter
+import dateutil.parser
 import pandas as pd
 import numpy as np
 import pytz
@@ -13,13 +14,8 @@ def get_dt(row):
     - Time is rounded to 10 milliseconds, to make sure the apps are in the right order.
       A potential downside of this is that when a person closes and re-opens an app
       within 10 milliseconds, it will be regarded as closed.
-    '''
-
-    zulutime = row['ol.datelogged'].split("Z")[0]
-    try:
-        zulutime = datetime.strptime(zulutime,"%Y-%m-%dT%H:%M:%S.%f")
-    except ValueError:
-        zulutime = datetime.strptime(zulutime,"%Y-%m-%dT%H:%M:%S")
+    '''    
+    zulutime = dateutil.parser.parse(row['ol.datelogged'])
     localtime = zulutime.replace(tzinfo=timezone.utc).astimezone(tz=pytz.timezone(row['ol.timezone']))
     # microsecond = min(round(localtime.microsecond / 10000)*10000, 990000)
     # localtime = localtime.replace(microsecond = microsecond)
@@ -115,11 +111,25 @@ def fill_appcat_quarterly(dataset,datelist,catlist):
                         dataset = dataset.append(newrow)
     return dataset
 
-def cut_first_last(dataset, first, last):
+
+def cut_first_last(dataset, includestartend, maxdays, first, last):
+    first_cor = dateutil.parser.parse(first) if includestartend else dateutil.parser.parse(first)+timedelta(days=1)
+    last_cor = dateutil.parser.parse(last) if includestartend else dateutil.parser.parse(last)-timedelta(days=1)
+
+    if maxdays is not None:
+        last_cor = first_cor + timedelta(days = maxdays)
+    
     dataset = dataset[
-        (dataset['date'] != first) & \
-        (dataset['date'] != last)]
-    return dataset.reset_index(drop=True)
+        (dataset['start_timestamp'] >= first_cor) & \
+        (dataset['end_timestamp'] <= last_cor)].reset_index(drop=True)
+    
+    if (len(dataset['end_timestamp']) == 0):
+        datelist = []
+    else:
+        enddate_fix = min(last_cor, max(dataset['end_timestamp']))
+        datelist = pd.date_range(start = first_cor, end = enddate_fix, freq='D')
+        
+    return dataset, datelist
 
 def add_session_durations(dataset):
     engagecols = [x for x in dataset.columns if x.startswith('engage')]
@@ -137,3 +147,4 @@ def add_session_durations(dataset):
             upper = len(dataset) if idx == len(sesids)-1 else sesids[idx+1]
             dataset.loc[np.arange(lower,upper),newcol] = durs[idx]
     return dataset
+

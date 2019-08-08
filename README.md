@@ -71,6 +71,10 @@ If you'd want to set a folder as an environment variable for easier readability,
     - `--includestartend`: Flag to include the first and last day.  These are cut off by default to keep the summary unbiased (due to missing data in the beginning of the start date or the end of the end date).
     - `--splitweek`: Flag to include the analyse separately week and weekend.  Requires argument `weekdefinition`.
     - `--weekdefinition`: One of `weekdayMF`, `weekdayMTh`, `weekdaySTh` to distinguish week and weekend (only when using `--splitweek` flag)
+    - `--splitday`: Flag to include the analyse separately daytime and nighttime.  Requires argument `daytime` and `nighttime`.
+    - `--daytime`: What time does daytime start?  In 24h format (eg. 10:00).
+    - `--nighttime`: What time does nighttime start?  In 24h format (eg. 22:00)
+    - `--maxdays`: The maximum number of days to be analyzed.
 
 An example statement for the example data with all custom arguments:
 
@@ -88,8 +92,10 @@ An example statement for the example data with all custom arguments:
       --sessioninterval=300 \
       --splitweek --weekdefinition='weekdayMF' \
       --log_dir=$FOLDER/logs \
-      --log_options='{"log_exceed_durations_minutes": [5, 15]}'
-      
+      --log_options='{"log_exceed_durations_minutes": [5, 15]}' \
+      --splitday --daytime="10:00" --nighttime="22:00" \
+      --maxdays=7
+  
 
 ## Description of output
 
@@ -161,9 +167,13 @@ If a subsetfile is provided, the output summary files will have a prefix equal t
             --removefile=$FOLDER\remove.csv \
             --precision=630 \
             --sessioninterval=300 \
-            --includestartend --splitweek --weekdefinition='weekdayMF'
+            --includestartend --splitweek --weekdefinition='weekdayMF' \
+            --splitday --daytime="10:00" --nighttime="22:00" \
+            --maxdays=7
+
 
 ## Build container
 
-      docker build -t openlattice/chroniclepy:v1.2 .
+      docker build -t openlattice/chroniclepy . --no-cache
       docker push openlattice/chroniclepy
+
