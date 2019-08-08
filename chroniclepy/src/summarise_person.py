@@ -8,13 +8,11 @@ import re
 
 def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = True, 
     weekdefinition = 'weekdayMF', recodefile=None, includestartend = False,
-    splitday = False, daytime = "10:00", nighttime = "22:00"
+    splitday = False, daytime = "10:00", nighttime = "22:00", maxdays = None
     ):
     
-    datelist = pd.date_range(start = preprocessed.firstdate.iloc[0], end = preprocessed.lastdate.iloc[0], freq='D')
     if not includestartend:
-        preprocessed = utils.cut_first_last(preprocessed, first = preprocessed.firstdate.iloc[0], last = preprocessed.lastdate.iloc[0]).reset_index(drop=True)
-        datelist = datelist[1:(len(datelist)-1)]
+        preprocessed, datelist = utils.cut_first_last(preprocessed, includestartend, maxdays, first = preprocessed.firstdate.iloc[0], last = preprocessed.lastdate.iloc[0])
     
     if isinstance(recodefile,str):
         recode = pd.read_csv(recodefile,index_col='full_name').astype(str)

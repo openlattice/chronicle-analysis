@@ -18,3 +18,7 @@
 
 1.2-rc3 - 07/31/2019
 * fix bug based on new backend
+
+1.3 - 08/08/2019
+* add possibility to split by daytime / nighttime
+* add option for maximum number of days

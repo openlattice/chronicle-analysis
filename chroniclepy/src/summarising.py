@@ -2,6 +2,7 @@ from chroniclepy import utils, summarise_person
 from datetime import datetime, timedelta
 from collections import Counter
 from pytz import timezone
+import dateutil.parser
 import pandas as pd
 import numpy as np
 import os
@@ -10,9 +11,10 @@ import re
 def summary(infolder, outfolder, includestartend=False, recodefile=None, 
     fullapplistfile=None, quarterly = False, 
     splitweek = True, weekdefinition = 'weekdayMF',
-    splitday = False, daytime = "10:00", nighttime = "22:00"
+    splitday = False, daytime = "10:00", nighttime = "22:00",
+    maxdays = None
     ):
-    
+        
     if not os.path.exists(outfolder):
         os.mkdir(outfolder)
 
@@ -39,7 +41,8 @@ def summary(infolder, outfolder, includestartend=False, recodefile=None,
             includestartend = includestartend,
             splitday = splitday,
             daytime = daytime,
-            nighttime = nighttime
+            nighttime = nighttime,
+            maxdays = maxdays
             )
         for k,v in person.items():
             if not k in full.keys():
