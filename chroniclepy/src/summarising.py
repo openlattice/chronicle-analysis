@@ -1,4 +1,4 @@
-from chroniclepy import utils, summarise_person
+from chroniclepy import utils, summarise_person, summarise_app_categories
 from datetime import datetime, timedelta
 from collections import Counter
 from pytz import timezone
@@ -23,6 +23,8 @@ def summary(infolder, outfolder, includestartend=False, recodefile=None,
     allapps = set()
 
     full = {}
+    appcat = pd.DataFrame()
+    
     for idx,filenm in enumerate(files):
         utils.logger("LOG: Summarising file %s..."%filenm,level=1)
         preprocessed = pd.read_csv(os.path.join(infolder,filenm),
@@ -49,6 +51,14 @@ def summary(infolder, outfolder, includestartend=False, recodefile=None,
                 full[k] = v
             else:
                 full[k] = pd.concat([full[k],person[k]],sort=True)
+
+        if recodefile:
+            app_percentages = summarise_app_categories.percentages(
+                preprocessed,
+                personID = personID,
+                recodefile = recodefile         
+            )
+            appcat = appcat.append(app_percentages, ignore_index=True)        
 
     aggfuncs = {
         "daily":                ['mean','std'],
@@ -80,3 +90,9 @@ def summary(infolder, outfolder, includestartend=False, recodefile=None,
             recode = pd.read_csv(recodefile,index_col='full_name').astype(str)
             fullapplist = pd.merge(fullapplist,recode,left_on='full_name',right_index=True,how='outer')
         fullapplist.to_csv(fullapplistfile,index=False)
+    
+    if recodefile:
+        addedcol = list(set(appcat)-set(['count', 'percentage', 'personID']))[0]
+        appcat = appcat.pivot(index="personID", columns = addedcol, values = 'percentage')
+        appcat.to_csv(os.path.join(outfolder, "summary_appcoding_percentages.csv"))
+
