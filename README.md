@@ -145,6 +145,8 @@ The summary analysis created the following tables:
   - Equal output as the daily summary, but separately for week and weekend days.
 - **summary\_appcoding_(daily/hourly/quarterly/week/weekend):** (with `recodefile`-argument)
   - Equal output as daily and hourly summaries, but split out by codes/variables in the `recodefile`-argument
+- **summary\_appcoding_percentages:**
+  - Out of all apps, what percentage of the apps is from a certain category?
 
 If a subsetfile is provided, the output summary files will have a prefix equal to the name of the column used in the subsetfile.
 
