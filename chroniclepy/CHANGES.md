@@ -22,3 +22,7 @@
 1.3 - 08/08/2019
 * add possibility to split by daytime / nighttime
 * add option for maximum number of days
+
+1.3-rc1 - 08/29/2019
+* better error logs
+* add feature to get percentages of apps
