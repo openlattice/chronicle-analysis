@@ -88,7 +88,12 @@ def summarise_appcoding_daily(dataset,addedcols):
     custom = None
     for addedcol in addedcols:
         dataset = dataset.fillna(value = {addedcol:"NA"})
-        customgrouped = dataset[['date',addedcol,'duration_minutes']].groupby(['date',addedcol]).agg(sum).unstack(addedcol)
+        customgrouped = dataset[['date',addedcol,'duration_minutes']].groupby(['date',addedcol])
+        try:
+            customgrouped = customgrouped.agg(sum)
+        except TypeError:
+            utils.logger("There's an issue with the appcoding file.  Is it possible that an app was defined twice? Exiting !!")
+        customgrouped = customgrouped.unstack(addedcol)
         customgrouped.columns = ["%s_%s_dur"%(addedcol,x) for x in customgrouped.columns.droplevel(0)]
         customgrouped.index = pd.to_datetime(customgrouped.index)
         if not isinstance(custom,pd.DataFrame):
@@ -103,7 +108,11 @@ def summarise_appcoding_hourly(dataset,addedcols):
     for addedcol in addedcols:
         catlist = list(Counter(dataset[addedcol]).keys())
         dataset = dataset.fillna(value = {addedcol:"NA"})
-        customgrouped = dataset[['date',addedcol,'duration_minutes','hour']].groupby(['date',addedcol,'hour']).agg(sum)
+        try:
+            customgrouped = dataset[['date',addedcol,'duration_minutes','hour']].groupby(['date',addedcol,'hour']).agg(sum)
+        except TypeError:
+            utils.logger("There's an issue with the appcoding file.  Is it possible that an app was defined twice?")
+            raise SystemExit
         customgrouped = utils.fill_appcat_hourly(customgrouped,datelist,catlist).unstack([addedcol,'hour'])
         customgrouped.columns = ["%s_%s_dur_h%i"%(addedcol,x[1],int(x[2])) for x in customgrouped.columns]
         customgrouped.index = pd.to_datetime(customgrouped.index)
