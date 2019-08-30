@@ -14,6 +14,10 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
     if not includestartend:
         preprocessed, datelist = utils.cut_first_last(preprocessed, includestartend, maxdays, first = preprocessed.firstdate.iloc[0], last = preprocessed.lastdate.iloc[0])
     
+    if len(preprocessed) == 0:
+        utils.logger("WARNING: No data for %s..."%personID,level=1)
+        return pd.DataFrame()
+    
     if isinstance(recodefile,str):
         recode = pd.read_csv(recodefile,index_col='full_name').astype(str)
         newcols = preprocessed.apply(lambda x: utils.recode(x,recode),axis=1)
