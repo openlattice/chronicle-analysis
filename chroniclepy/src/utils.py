@@ -113,22 +113,35 @@ def fill_appcat_quarterly(dataset,datelist,catlist):
 
 
 def cut_first_last(dataset, includestartend, maxdays, first, last):
-    first_cor = dateutil.parser.parse(first) if includestartend else dateutil.parser.parse(first)+timedelta(days=1)
-    last_cor = dateutil.parser.parse(last) if includestartend else dateutil.parser.parse(last)-timedelta(days=1)
-
-    if maxdays is not None:
-        last_cor = first_cor + timedelta(days = maxdays)
+    first_parsed = dateutil.parser.parse(first)
+    last_parsed = dateutil.parser.parse(last)
     
-    dataset = dataset[
-        (dataset['start_timestamp'] >= first_cor) & \
-        (dataset['end_timestamp'] <= last_cor)].reset_index(drop=True)
+    # cutoff start: upper bound of first timepoint if not includestartend
+    first_cutoff = first_parsed if includestartend \
+        else first_parsed.replace(hour=0, minute=0, second=0, microsecond=0)+timedelta(days=1)
+    
+    # cutoff end: lower bound of last timepoint if not includestartend
+    last_cutoff = last_parsed if includestartend \
+        else last_parsed.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # last day to be included in datelist: day before last timepoint if not includestartend
+    last_day = last_parsed if includestartend \
+        else last_parsed.replace(hour=0, minute=0, second=0, microsecond=0)-timedelta(days=1)
+        
+    if maxdays is not None:
+        last_cutoff = first_cutoff + timedelta(days = maxdays)
+        last_day = first_cutoff + timedelta(days = maxdays)
     
     if (len(dataset['end_timestamp']) == 0):
         datelist = []
     else:
-        enddate_fix = min(last_cor, max(dataset['end_timestamp']))
-        datelist = pd.date_range(start = first_cor, end = enddate_fix, freq='D')
-        
+        enddate_fix = min(last_day, max(dataset['end_timestamp']))
+        datelist = pd.date_range(start = first_cutoff, end = enddate_fix, freq='D')
+    
+    dataset = dataset[
+        (dataset['start_timestamp'] >= first_cutoff) & \
+        (dataset['end_timestamp'] <= last_cutoff)].reset_index(drop=True)
+            
     return dataset, datelist
 
 def add_session_durations(dataset):
