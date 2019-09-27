@@ -1,0 +1,146 @@
+dur_h0_mean:
+  0: 3.613333333333333
+dur_h10_mean:
+  0: 5.276666666666666
+dur_h11_mean:
+  0: 1.4633333333333334
+dur_h12_mean:
+  0: 1.6599999999999997
+dur_h13_mean:
+  0: 1.086666666666667
+dur_h14_mean:
+  0: 4.626666666666666
+dur_h15_mean:
+  0: 2.13
+dur_h16_mean:
+  0: 3.063333333333333
+dur_h17_mean:
+  0: 1.95
+dur_h18_mean:
+  0: 3.003333333333333
+dur_h19_mean:
+  0: 2.38
+dur_h1_mean:
+  0: 0.0
+dur_h20_mean:
+  0: 1.2
+dur_h21_mean:
+  0: 1.7399999999999998
+dur_h22_mean:
+  0: 0.4866666666666667
+dur_h23_mean:
+  0: 0.04666666666666668
+dur_h2_mean:
+  0: 0.0
+dur_h3_mean:
+  0: 0.0
+dur_h4_mean:
+  0: 0.0
+dur_h5_mean:
+  0: 0.0
+dur_h6_mean:
+  0: 0.15333333333333335
+dur_h7_mean:
+  0: 0.18
+dur_h8_mean:
+  0: 3.5666666666666664
+dur_h9_mean:
+  0: 2.3633333333333333
+engage_60s_cnt_h0_mean:
+  0: 1.6
+engage_60s_cnt_h10_mean:
+  0: 2.4
+engage_60s_cnt_h11_mean:
+  0: 1.4
+engage_60s_cnt_h12_mean:
+  0: 2.2
+engage_60s_cnt_h13_mean:
+  0: 2.8
+engage_60s_cnt_h14_mean:
+  0: 1.8
+engage_60s_cnt_h15_mean:
+  0: 2.4
+engage_60s_cnt_h16_mean:
+  0: 1
+engage_60s_cnt_h17_mean:
+  0: 2.6
+engage_60s_cnt_h18_mean:
+  0: 2
+engage_60s_cnt_h19_mean:
+  0: 1
+engage_60s_cnt_h1_mean:
+  0: 0
+engage_60s_cnt_h20_mean:
+  0: 1.2
+engage_60s_cnt_h21_mean:
+  0: 1.2
+engage_60s_cnt_h22_mean:
+  0: 1
+engage_60s_cnt_h23_mean:
+  0: 0.6
+engage_60s_cnt_h2_mean:
+  0: 0
+engage_60s_cnt_h3_mean:
+  0: 0
+engage_60s_cnt_h4_mean:
+  0: 0
+engage_60s_cnt_h5_mean:
+  0: 0
+engage_60s_cnt_h6_mean:
+  0: 0.2
+engage_60s_cnt_h7_mean:
+  0: 0.4
+engage_60s_cnt_h8_mean:
+  0: 2.6
+engage_60s_cnt_h9_mean:
+  0: 1.8
+participant_id:
+  0: DrZevia_subset
+switchpermin_h0_mean:
+  0: 1.1365469617370858
+switchpermin_h10_mean:
+  0: 0.2547203795612164
+switchpermin_h11_mean:
+  0: 0.0
+switchpermin_h12_mean:
+  0: 0.9950711718188356
+switchpermin_h13_mean:
+  0: 0.6767891070806225
+switchpermin_h14_mean:
+  0: 1.2359314356243405
+switchpermin_h15_mean:
+  0: 0.4882759882451145
+switchpermin_h16_mean:
+  0: 0.5855883247187597
+switchpermin_h17_mean:
+  0: 1.225677605106965
+switchpermin_h18_mean:
+  0: 1.6513187012853905
+switchpermin_h19_mean:
+  0: 0.9981336651261998
+switchpermin_h1_mean:
+  0: 0.0
+switchpermin_h20_mean:
+  0: 0.09876543209876544
+switchpermin_h21_mean:
+  0: 1.6890536712465725
+switchpermin_h22_mean:
+  0: 1.5545454545454542
+switchpermin_h23_mean:
+  0: 13.333333333333336
+switchpermin_h2_mean:
+  0: 0.0
+switchpermin_h3_mean:
+  0: 0.0
+switchpermin_h4_mean:
+  0: 0.0
+switchpermin_h5_mean:
+  0: 0.0
+switchpermin_h6_mean:
+  0: 0.2608695652173913
+switchpermin_h7_mean:
+  0: 0.9529411764705882
+switchpermin_h8_mean:
+  0: 0.4282163819837182
+switchpermin_h9_mean:
+  0: 0.4698727735368957
