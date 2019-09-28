@@ -26,3 +26,7 @@
 1.3-rc1 - 08/29/2019
 * better error logs
 * add feature to get percentages of apps
+
+1.4 - 09/27/2019
+*  fix bugs on first and last days
+*  add end-to-end test

@@ -73,7 +73,7 @@ def main():
     if opts.stage=='preprocessing' or opts.stage=='all':
         if (opts.log_options != "") and not isinstance(opts.log_dir, str):
             raise ValueError("You specified a logging options, but no directory to write logs.")
-        preprocessing.preprocess(
+        preprocessing.preprocess_folder(
             infolder = opts.input_dir,
             outfolder = opts.preproc_dir,
             precision = opts.precision,
@@ -92,7 +92,7 @@ def main():
             )
 
     if opts.stage=='summary' or opts.stage=='all':
-        if opts.precision > 15*60:
+        if opts.precision > 15*60 and opts.quarterly:
             raise ValueError("The precision is above a quarter and the minimum precision for summary is by quarter.")
         if isinstance(opts.weekdefinition,str):
             if opts.weekdefinition not in ['weekdayMTh', 'weekdaySTh', 'weekdayMF']:

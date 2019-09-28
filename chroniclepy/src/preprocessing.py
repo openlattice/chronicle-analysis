@@ -7,7 +7,14 @@ import numpy as np
 import os
 import re
 
-def read_and_clean_data(filenm):
+def read_data(filenm):
+    personid = "-".join(str(filenm).split(".")[-2].split("ChronicleData-")[1:])
+    thisdata = pd.read_csv(filenm)
+    thisdata['person'] = personid
+    return thisdata
+    
+
+def clean_data(thisdata):
     '''
     This function transforms a csv file into a clean dataset:
     - only move-to-foreground and move-to-background actions
@@ -15,9 +22,6 @@ def read_and_clean_data(filenm):
     - extracts datetime information and rounds to 10ms
     - sorts events from the same 10ms by (1) foreground, (2) background
     '''
-    personid = "-".join(str(filenm).split(".")[-2].split("-")[1:])
-    thisdata = pd.read_csv(filenm)
-    thisdata['person'] = personid
     thisdata = thisdata.dropna(subset=['ol.recordtype','ol.datelogged'])
     if len(thisdata)==0:
         return(thisdata)
@@ -27,7 +31,7 @@ def read_and_clean_data(filenm):
         thisdata['ol.timezone'] = "UTC"
     thisdata = thisdata[['general.fullname','ol.recordtype','ol.datelogged','person','ol.timezone']]
     # fill timezone by preceding timezone and then backwards
-    thisdata = thisdata.sort_values(by="ol.datelogged").reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
+    thisdata = thisdata.sort_values(by=["ol.datelogged"]).reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
     thisdata['dt_logged'] = thisdata.apply(utils.get_dt,axis=1)
     thisdata['action'] = thisdata.apply(utils.get_action,axis=1)
     thisdata = thisdata.sort_values(by=['dt_logged', 'action']).reset_index(drop=True)
@@ -76,7 +80,7 @@ def get_timestamps(prevtime,curtime,row=None,precision=60):
 
     return pd.DataFrame(outtime)
 
-def extract_usage(filename,precision=3600):
+def extract_usage(dataframe,precision=3600):
     '''
     function to extract usage from a filename.  Precision in seconds.
     '''
@@ -97,7 +101,7 @@ def extract_usage(filename,precision=3600):
             'duration_seconds']
 
     alldata = pd.DataFrame()
-    rawdata = read_and_clean_data(filename)
+    rawdata = clean_data(dataframe)
     openapps = {}
 
     for idx, row in rawdata.iterrows():
@@ -206,30 +210,36 @@ def log_exceed_durations_minutes(row, threshold, outfile):
             timestamp = timestamp
         ))
 
-def preprocess(infolder,outfolder,precision=3600,sessioninterval = [5*60], logdir=None, logopts=None):
+def preprocess_dataframe(dataframe, precision=3600,sessioninterval = [5*60], logdir=None, logopts=None):
+    tmp = extract_usage(dataframe,precision=precision)
+    if not isinstance(tmp,pd.DataFrame):
+        return None
+        utils.logger("WARNING: File %s does not seem to contain relevant data.  Skipping..."%filename)
+    data = check_overlap_add_sessions(tmp,session_def=sessioninterval)
+    data['duration_minutes'] = data['duration_seconds']/60.
+    data = utils.add_session_durations(data)
+    
+    if 'log_exceed_durations_minutes' in logopts.keys():
+        if not os.path.exists(logdir):
+            os.mkdir(logdir)
+        for threshold in logopts['log_exceed_durations_minutes']:
+            subset = data[data.duration_minutes > float(threshold)]
+            outfile = os.path.join(logdir, "log_exceed_durations_minutes_%s.txt"%threshold)
+            if len(subset) > 0:
+                for idx, row in data[data.duration_minutes > threshold].iterrows():
+                    log_exceed_durations_minutes(row, threshold, outfile)
+    return data
+    
+    
+def preprocess_folder(infolder,outfolder,precision=3600,sessioninterval = [5*60], logdir=None, logopts=None):
 
     if not os.path.exists(outfolder):
         os.mkdir(outfolder)
 
     for filename in [x for x in os.listdir(infolder) if x.startswith("Chronicle")]:
         utils.logger("LOG: Preprocessing file %s..."%filename,level=1)
-        tmp = extract_usage(os.path.join(infolder,filename),precision=precision)
-        if not isinstance(tmp,pd.DataFrame):
-            utils.logger("WARNING: File %s does not seem to contain relevant data.  Skipping..."%filename)
-            continue
-        data = check_overlap_add_sessions(tmp,session_def=sessioninterval)
-        data['duration_minutes'] = data['duration_seconds']/60.
-        data = utils.add_session_durations(data)
-        
-        if 'log_exceed_durations_minutes' in logopts.keys():
-            if not os.path.exists(logdir):
-                os.mkdir(logdir)
-            for threshold in logopts['log_exceed_durations_minutes']:
-                subset = data[data.duration_minutes > float(threshold)]
-                outfile = os.path.join(logdir, "log_exceed_durations_minutes_%s.txt"%threshold)
-                if len(subset) > 0:
-                    for idx, row in data[data.duration_minutes > threshold].iterrows():
-                        log_exceed_durations_minutes(row, threshold, outfile)
-                
-        outfilename = filename.replace('ChronicleData','ChronicleData_preprocessed')
-        data.to_csv(os.path.join(outfolder,outfilename),index=False)
+        dataframe = read_data(os.path.join(infolder,filename))
+        data = preprocess_dataframe(dataframe, precision=precision,sessioninterval = sessioninterval, logdir=logdir, logopts=logopts)
+        if data is not None:
+            outfilename = filename.replace('ChronicleData','ChronicleData_preprocessed')
+            data.to_csv(os.path.join(outfolder,outfilename),index=False)

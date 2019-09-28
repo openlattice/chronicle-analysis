@@ -11,8 +11,8 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
     splitday = False, daytime = "10:00", nighttime = "22:00", maxdays = None
     ):
     
-    if not includestartend:
-        preprocessed, datelist = utils.cut_first_last(preprocessed, includestartend, maxdays, first = preprocessed.firstdate.iloc[0], last = preprocessed.lastdate.iloc[0])
+    
+    preprocessed, datelist = utils.cut_first_last(preprocessed, includestartend, maxdays, first = preprocessed.firstdate.iloc[0], last = preprocessed.lastdate.iloc[0])
     
     if len(preprocessed) == 0:
         utils.logger("WARNING: No data for %s..."%personID,level=1)
