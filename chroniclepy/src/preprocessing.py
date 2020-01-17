@@ -145,6 +145,25 @@ def extract_usage(dataframe,precision=3600):
                 alldata = pd.concat([alldata,timepoints])
                 
                 openapps[app] = {"open": False}
+
+        if interaction == 'Unknown importance: 26':
+	        
+            for app in openapps.keys():
+            
+                if openapps[app]['open'] == True:
+                    
+                    # get time of opening
+                    prevtime = openapps[app]['time']
+                    
+                    if curtime-prevtime<timedelta(0):
+                        raise ValueError("ALARM ALARM: timepoints out of order !!")
+                    
+                    # split up timepoints by precision
+                    timepoints = get_timestamps(prevtime,curtime,precision=precision,row=row)
+                    
+                    alldata = pd.concat([alldata,timepoints])
+                    
+                    openapps[app] = {'open': False}
             
     if len(alldata)>0:
         alldata = alldata.sort_values(by=['start_timestamp','end_timestamp']).reset_index(drop=True)

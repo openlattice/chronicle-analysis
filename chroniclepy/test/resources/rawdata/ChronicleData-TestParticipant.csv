@@ -22,4 +22,4 @@ com.Slack,Move to Background,84cf7ac1-e75b-4a52-b35a-b1fad8c1111b,,,,2018-08-05T
 com.facebook.orca,Move to Foreground,bb761a03-9ca0-4d22-905f-cb9e0b47e358,,,,2018-08-05T03:50:00.000Z,,,,America/Los_Angeles
 com.facebook.orca,Move to Background,224984c0-49f9-4e0f-af04-be5865403f63,,,,2018-08-05T05:10:00.000Z,,,,America/Los_Angeles
 com.android.chrome,Move to Foreground,d1ebd3a0-34ed-4c66-bd19-f2e7437bf9f4,,,,2018-08-05T05:20:00.000Z,,,,America/Los_Angeles
-com.android.chrome,Move to Background,7217f791-573b-4486-94c9-78c11ef993f5,,,,2018-08-05T06:20:00.000Z,,,,America/Los_Angeles
+com.android.chrome,Unknown importance: 26,7217f791-573b-4486-94c9-78c11ef993f5,,,,2018-08-05T06:20:00.000Z,,,,America/Los_Angeles
