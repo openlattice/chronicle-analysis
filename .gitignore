@@ -1,0 +1,8 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+chroniclepy/.idea/
+chroniclepy/build/
+chroniclepy/chroniclepy.egg-info/
+chroniclepy/dist/
