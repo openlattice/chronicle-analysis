@@ -30,3 +30,6 @@
 1.4 - 09/27/2019
 *  fix bugs on first and last days
 *  add end-to-end test
+
+1.5 - 01/29/2020
+* adding device shutdowns
