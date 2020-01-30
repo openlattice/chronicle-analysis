@@ -27,7 +27,7 @@ def clean_data(thisdata):
         return(thisdata)
     thisdata = thisdata[thisdata['ol.recordtype'] != 'Usage Stat']
     if not 'ol.timezone' in thisdata.keys() or any(thisdata['ol.timezone']==None):
-        utils.logger("WARNING: File %s has no timezone information.  Registering reported time."%filenm)
+        utils.logger("WARNING: Record has no timezone information.  Registering reported time.")
         thisdata['ol.timezone'] = "UTC"
     thisdata = thisdata[['general.fullname','ol.recordtype','ol.datelogged','person','ol.timezone']]
     # fill timezone by preceding timezone and then backwards
