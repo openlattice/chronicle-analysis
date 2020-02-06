@@ -27,7 +27,7 @@ def clean_data(thisdata):
         return(thisdata)
     thisdata = thisdata[thisdata['ol.recordtype'] != 'Usage Stat']
     if not 'ol.timezone' in thisdata.keys() or any(thisdata['ol.timezone']==None):
-        utils.logger("WARNING: File %s has no timezone information.  Registering reported time."%filenm)
+        utils.logger("WARNING: Record has no timezone information.  Registering reported time.")
         thisdata['ol.timezone'] = "UTC"
     thisdata = thisdata[['general.fullname','ol.recordtype','ol.datelogged','person','ol.timezone']]
     # fill timezone by preceding timezone and then backwards
@@ -231,7 +231,7 @@ def log_exceed_durations_minutes(row, threshold, outfile):
 
 def preprocess_dataframe(dataframe, precision=3600,sessioninterval = [5*60], logdir=None, logopts=None):
     tmp = extract_usage(dataframe,precision=precision)
-    if not isinstance(tmp,pd.DataFrame):
+    if not isinstance(tmp,pd.DataFrame) or np.sum(data['duration_seconds']) == 0:
         return None
         utils.logger("WARNING: File %s does not seem to contain relevant data.  Skipping..."%filename)
     data = check_overlap_add_sessions(tmp,session_def=sessioninterval)
