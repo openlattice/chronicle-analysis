@@ -2,10 +2,14 @@ from datetime import datetime, timedelta
 from collections import Counter
 from pytz import timezone
 from chroniclepy import utils
+import ruamel.yaml as yaml
 import pandas as pd
 import numpy as np
 import os
 import re
+
+with open('interactions.yaml') as stream:
+    interactions = yaml.safe_load(stream)
 
 def read_data(filenm):
     personid = "-".join(str(filenm).split(".")[-2].split("ChronicleData-")[1:])
@@ -22,6 +26,7 @@ def clean_data(thisdata):
     - extracts datetime information and rounds to 10ms
     - sorts events from the same 10ms by (1) foreground, (2) background
     '''
+
     thisdata = thisdata.dropna(subset=['ol.recordtype','ol.datelogged'])
     if len(thisdata)==0:
         return(thisdata)
@@ -37,47 +42,64 @@ def clean_data(thisdata):
     thisdata = thisdata.sort_values(by=['dt_logged', 'action']).reset_index(drop=True)
     return thisdata.drop(['action'],axis=1)
 
-def get_timestamps(prevtime,curtime,row=None,precision=60):
+def get_timestamps(curtime, prevtime=False, row=None, precision=60):
     '''
     Function transforms an app usage statistic into bins (according to the desired precision).
     Returns a dataframe with the number of rows the number of time units (= precision).
     Precision in seconds.
     '''
-    # round down to precision
-    prevtimehour = prevtime.replace(microsecond=0,second=0,minute=0)
-    seconds_since_prevtimehour = np.floor((prevtime-prevtimehour).seconds/precision)*precision
-    prevtimerounded = prevtimehour+timedelta(seconds=seconds_since_prevtimehour)
-
-    # number of timepoints on precision scale (= new rows )
-    timedif = (curtime-prevtimerounded)
-    timepoints_n = int(np.floor(timedif.seconds/precision)+int(timedif.days*24*60*60/precision))
-
-    # run over timepoints and append datetimestamps
-    delta = timedelta(seconds=0)
-    outtime = []
-    for timepoint in range(timepoints_n+1):
-        starttime = prevtime if timepoint == 0 else prevtimerounded+delta
-        endtime = curtime if timepoint == timepoints_n else prevtimerounded+delta+timedelta(seconds=precision)
-        outmetrics = {
+    if prevtime:
+        # round down to precision
+        prevtimehour = prevtime.replace(microsecond=0,second=0,minute=0)
+        seconds_since_prevtimehour = np.floor((prevtime-prevtimehour).seconds/precision)*precision
+        prevtimerounded = prevtimehour+timedelta(seconds=seconds_since_prevtimehour)
+    
+        # number of timepoints on precision scale (= new rows )
+        timedif = (curtime-prevtimerounded)
+        timepoints_n = int(np.floor(timedif.seconds/precision)+int(timedif.days*24*60*60/precision))
+    
+        # run over timepoints and append datetimestamps
+        delta = timedelta(seconds=0)
+        outtime = []
+        for timepoint in range(timepoints_n+1):
+            starttime = prevtime if timepoint == 0 else prevtimerounded+delta
+            endtime = curtime if timepoint == timepoints_n else prevtimerounded+delta+timedelta(seconds=precision)
+            outmetrics = {
+                "start_timestamp": starttime,
+                "end_timestamp": endtime,
+                "date": starttime.strftime("%Y-%m-%d"),
+                "starttime": starttime.strftime("%H:%M:%S.%f"),
+                "endtime": endtime.strftime("%H:%M:%S.%f"),
+                "day": (starttime.weekday()+1)%7+1,
+                "weekdayMF": 1 if starttime.weekday() < 5 else 0,
+                "weekdayMTh": 1 if starttime.weekday() < 4 else 0,
+                "weekdaySTh": 1 if (starttime.weekday() < 4 or starttime.weekday()==6) else 0,
+                "hour": starttime.hour,
+                "quarter": int(np.floor(starttime.minute/15.))+1,
+                "duration_seconds": (endtime-starttime).seconds
+            }
+            outmetrics['participant_id'] = row['person']
+            outmetrics['app_fullname'] = row['general.fullname']
+    
+            delta = delta+timedelta(seconds=precision)
+            outtime.append(outmetrics)
+    else:
+        starttime = curtime
+        outtime = [{
             "start_timestamp": starttime,
-            "end_timestamp": endtime,
+            "end_timestamp": np.NaN,
             "date": starttime.strftime("%Y-%m-%d"),
             "starttime": starttime.strftime("%H:%M:%S.%f"),
-            "endtime": endtime.strftime("%H:%M:%S.%f"),
+            "endtime": np.NaN,
             "day": (starttime.weekday()+1)%7+1,
             "weekdayMF": 1 if starttime.weekday() < 5 else 0,
             "weekdayMTh": 1 if starttime.weekday() < 4 else 0,
             "weekdaySTh": 1 if (starttime.weekday() < 4 or starttime.weekday()==6) else 0,
             "hour": starttime.hour,
             "quarter": int(np.floor(starttime.minute/15.))+1,
-            "duration_seconds": (endtime-starttime).seconds
-        }
-        outmetrics['participant_id'] = row['person']
-        outmetrics['app_fullname'] = row['general.fullname']
-
-        delta = delta+timedelta(seconds=precision)
-        outtime.append(outmetrics)
-
+            "duration_seconds": np.NaN,
+            "log_type": np.NaN
+        }]
     return pd.DataFrame(outtime)
 
 def extract_usage(dataframe,precision=3600):
@@ -98,7 +120,8 @@ def extract_usage(dataframe,precision=3600):
             'weekdaySTh',
             'hour',
             'quarter',
-            'duration_seconds']
+            'duration_seconds',
+            'log_type']
 
     alldata = pd.DataFrame()
     rawdata = clean_data(dataframe)
@@ -113,7 +136,7 @@ def extract_usage(dataframe,precision=3600):
         curtime = row.dt_logged
         curtime_zulustring = curtime.astimezone(tz=timezone("UTC")).strftime("%Y-%m-%d %H:%M:%S")
 
-        if interaction == 'Move to Foreground':
+        if interaction == interactions['foreground']:
             openapps[app] = {"open" : True,
                              "time": curtime}
 
@@ -124,12 +147,11 @@ def extract_usage(dataframe,precision=3600):
                                         
                 if appdata['open'] == True and appdata['time'] < curtime:
                     
-                    utils.logger("WARNING: App %s is moved to foreground on %s but %s was still open.  Discarding %s now..."%(
-                        app, curtime_zulustring, olderapp, olderapp))
+                    utils.logger(f"WARNING: App {app} is moved to foreground on {curtime_zulustring}\
+                                    but {olderapp} was still open.  Discarding {olderapp} now...")
+                    openapps[olderapp]['open'] = False
 
-                    openapps[olderapp] = {"open": False}
-
-        if interaction == 'Move to Background':
+        if interaction == interactions['background']:
 
             if app in openapps.keys() and openapps[app]['open']==True:
 
@@ -140,13 +162,15 @@ def extract_usage(dataframe,precision=3600):
                     raise ValueError("ALARM ALARM: timepoints out of order !!")
 
                 # split up timepoints by precision
-                timepoints = get_timestamps(prevtime,curtime,precision=precision,row=row)
+                timepoints = get_timestamps(curtime,prevtime,precision=precision,row=row)
 
-                alldata = pd.concat([alldata,timepoints])
+                timepoints['log_type'] = 'App Usage'
+
+                alldata = pd.concat([alldata,timepoints], sort=False)
                 
-                openapps[app] = {"open": False}
+                openapps[app]['open'] = False
 
-        if interaction == 'Unknown importance: 26':
+        if interaction == interactions['power_off']:
 	        
             for app in openapps.keys():
             
@@ -159,12 +183,38 @@ def extract_usage(dataframe,precision=3600):
                         raise ValueError("ALARM ALARM: timepoints out of order !!")
                     
                     # split up timepoints by precision
-                    timepoints = get_timestamps(prevtime,curtime,precision=precision,row=row)
+                    timepoints = get_timestamps(curtime,prevtime,precision=precision,row=row)
                     
-                    alldata = pd.concat([alldata,timepoints])
+                    timepoints['log_type'] = 'Power Off'
+
+                    alldata = pd.concat([alldata,timepoints], sort=False)
                     
                     openapps[app] = {'open': False}
             
+        if interaction == interactions['notification_seen']:
+            timepoints = get_timestamps(curtime, precision=precision, row=row)
+            timepoints['log_type'] = 'Notification Seen'
+            
+            alldata = pd.concat([alldata,timepoints], sort=False)
+            
+        if interaction == interactions['notification_interruption']:
+            timepoints = get_timestamps(curtime, precision=precision, row=row)
+            timepoints['log_type'] = 'Notification Interruption'
+            
+            alldata = pd.concat([alldata,timepoints], sort=False)
+            
+        if interaction == interactions['screen_non_interactive']:
+            timepoints = get_timestamps(curtime, precision=precision, row=row)
+            timepoints['log_type'] = 'Screen Non-interactive'
+            
+            alldata = pd.concat([alldata,timepoints], sort=False)
+        
+        if interaction == interactions['screen_interactive']:
+            timepoints = get_timestamps(curtime, precision=precision, row=row)
+            timepoints['log_type'] = 'Screen Interactive'
+            
+            alldata = pd.concat([alldata,timepoints], sort=False)
+
     if len(alldata)>0:
         alldata = alldata.sort_values(by=['start_timestamp','end_timestamp']).reset_index(drop=True)
         return alldata[cols].reset_index(drop=True)
