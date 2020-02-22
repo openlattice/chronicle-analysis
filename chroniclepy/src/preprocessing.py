@@ -147,11 +147,29 @@ def extract_usage(dataframe,precision=3600):
                                         
                 if appdata['open'] == True and appdata['time'] < curtime:
                     
+                    latest_unbackgrounded = {'unbgd_app':olderapp, 'fg_time':curtime, 'unbgd_time':appdata['time']}
+
                     utils.logger(f"WARNING: App {app} is moved to foreground on {curtime_zulustring}\
                                     but {olderapp} was still open.  Discarding {olderapp} now...")
+
                     openapps[olderapp]['open'] = False
 
         if interaction == interactions['background']:
+
+            if latest_unbackgrounded and app == latest_unbackgrounded['unbgd_app']:
+                timediff = curtime - latest_unbackgrounded['fg_time']
+                
+                if timediff < timedelta(seconds=1):
+
+                    timepoints = get_timestamps(curtime, latest_unbackgrounded['unbgd_time'], precision=precision, row=row)
+
+                    timepoints['log_type'] = 'App Usage'
+
+                    alldata = pd.concat([alldata,timepoints], sort=False)
+
+                    openapps[app]['open'] = False
+
+                    latest_unbackgrounded = False
 
             if app in openapps.keys() and openapps[app]['open']==True:
 
