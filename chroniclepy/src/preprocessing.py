@@ -126,6 +126,7 @@ def extract_usage(dataframe,precision=3600):
     alldata = pd.DataFrame()
     rawdata = clean_data(dataframe)
     openapps = {}
+    latest_unbackgrounded = False
 
     for idx, row in rawdata.iterrows():
 
