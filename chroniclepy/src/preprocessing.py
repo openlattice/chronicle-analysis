@@ -64,8 +64,8 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
             "quarter": int(np.floor(starttime.minute/15.))+1,
             "duration_seconds": np.NaN,
             "log_type": np.NaN,
-            "participant_id" = row['person'],
-            "app_fullname" = row['general.fullname']
+            "participant_id": row['person'],
+            "app_fullname": row['general.fullname']
         }]
     
         return pd.DataFrame(outtime)
