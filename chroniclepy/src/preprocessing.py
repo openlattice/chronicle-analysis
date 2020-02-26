@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from collections import Counter
 from pytz import timezone
 from chroniclepy import utils
-import ruamel.yaml as yaml
+import yaml
 import pandas as pd
 import numpy as np
 import os
@@ -48,42 +48,7 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
     Returns a dataframe with the number of rows the number of time units (= precision).
     Precision in seconds.
     '''
-    if prevtime:
-        # round down to precision
-        prevtimehour = prevtime.replace(microsecond=0,second=0,minute=0)
-        seconds_since_prevtimehour = np.floor((prevtime-prevtimehour).seconds/precision)*precision
-        prevtimerounded = prevtimehour+timedelta(seconds=seconds_since_prevtimehour)
-    
-        # number of timepoints on precision scale (= new rows )
-        timedif = (curtime-prevtimerounded)
-        timepoints_n = int(np.floor(timedif.seconds/precision)+int(timedif.days*24*60*60/precision))
-    
-        # run over timepoints and append datetimestamps
-        delta = timedelta(seconds=0)
-        outtime = []
-        for timepoint in range(timepoints_n+1):
-            starttime = prevtime if timepoint == 0 else prevtimerounded+delta
-            endtime = curtime if timepoint == timepoints_n else prevtimerounded+delta+timedelta(seconds=precision)
-            outmetrics = {
-                "start_timestamp": starttime,
-                "end_timestamp": endtime,
-                "date": starttime.strftime("%Y-%m-%d"),
-                "starttime": starttime.strftime("%H:%M:%S.%f"),
-                "endtime": endtime.strftime("%H:%M:%S.%f"),
-                "day": (starttime.weekday()+1)%7+1,
-                "weekdayMF": 1 if starttime.weekday() < 5 else 0,
-                "weekdayMTh": 1 if starttime.weekday() < 4 else 0,
-                "weekdaySTh": 1 if (starttime.weekday() < 4 or starttime.weekday()==6) else 0,
-                "hour": starttime.hour,
-                "quarter": int(np.floor(starttime.minute/15.))+1,
-                "duration_seconds": (endtime-starttime).seconds
-            }
-            outmetrics['participant_id'] = row['person']
-            outmetrics['app_fullname'] = row['general.fullname']
-    
-            delta = delta+timedelta(seconds=precision)
-            outtime.append(outmetrics)
-    else:
+    if not prevtime:
         starttime = curtime
         outtime = [{
             "start_timestamp": starttime,
@@ -98,8 +63,52 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
             "hour": starttime.hour,
             "quarter": int(np.floor(starttime.minute/15.))+1,
             "duration_seconds": np.NaN,
-            "log_type": np.NaN
+            "log_type": np.NaN,
+            "participant_id" = row['person'],
+            "app_fullname" = row['general.fullname']
         }]
+    
+        return pd.DataFrame(outtime)
+
+    #round down to precision
+
+    prevtimehour = prevtime.replace(microsecond=0,second=0,minute=0)
+    seconds_since_prevtimehour = np.floor((prevtime-prevtimehour).seconds/precision)*precision
+    prevtimerounded = prevtimehour+timedelta(seconds=seconds_since_prevtimehour)
+   
+    # number of timepoints on precision scale (= new rows )
+    timedif = (curtime-prevtimerounded)
+    timepoints_n = int(np.floor(timedif.seconds/precision)+int(timedif.days*24*60*60/precision))
+   
+    # run over timepoints and append datetimestamps
+    delta = timedelta(seconds=0)
+    outtime = []
+    
+    for timepoint in range(timepoints_n+1):
+        starttime = prevtime if timepoint == 0 else prevtimerounded+delta
+        endtime = curtime if timepoint == timepoints_n else prevtimerounded+delta+timedelta(seconds=precision)
+        
+        outmetrics = {
+            "start_timestamp": starttime,
+            "end_timestamp": endtime,
+            "date": starttime.strftime("%Y-%m-%d"),
+            "starttime": starttime.strftime("%H:%M:%S.%f"),
+            "endtime": endtime.strftime("%H:%M:%S.%f"),
+            "day": (starttime.weekday()+1)%7+1,
+            "weekdayMF": 1 if starttime.weekday() < 5 else 0,
+            "weekdayMTh": 1 if starttime.weekday() < 4 else 0,
+            "weekdaySTh": 1 if (starttime.weekday() < 4 or starttime.weekday()==6) else 0,
+            "hour": starttime.hour,
+            "quarter": int(np.floor(starttime.minute/15.))+1,
+            "duration_seconds": (endtime-starttime).seconds
+        }
+
+        outmetrics['participant_id'] = row['person']
+        outmetrics['app_fullname'] = row['general.fullname']
+       
+        delta = delta+timedelta(seconds=precision)
+        outtime.append(outmetrics)
+
     return pd.DataFrame(outtime)
 
 def extract_usage(dataframe,precision=3600):
