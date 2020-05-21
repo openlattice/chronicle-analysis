@@ -8,8 +8,7 @@ import numpy as np
 import os
 import re
 
-with open('interactions.yaml') as stream:
-    interactions = yaml.safe_load(stream)
+from .constants import interactions
 
 def read_data(filenm):
     personid = "-".join(str(filenm).split(".")[-2].split("ChronicleData-")[1:])
@@ -146,7 +145,7 @@ def extract_usage(dataframe,precision=3600):
         curtime = row.dt_logged
         curtime_zulustring = curtime.astimezone(tz=timezone("UTC")).strftime("%Y-%m-%d %H:%M:%S")
 
-        if interaction == interactions['foreground']:
+        if interaction == interactions.foreground:
             openapps[app] = {"open" : True,
                              "time": curtime}
 
@@ -164,7 +163,7 @@ def extract_usage(dataframe,precision=3600):
 
                     openapps[olderapp]['open'] = False
 
-        if interaction == interactions['background']:
+        if interaction == interactions.background:
 
             if latest_unbackgrounded and app == latest_unbackgrounded['unbgd_app']:
                 timediff = curtime - latest_unbackgrounded['fg_time']
@@ -198,7 +197,7 @@ def extract_usage(dataframe,precision=3600):
                 
                 openapps[app]['open'] = False
 
-        if interaction == interactions['power_off']:
+        if interaction == interactions.power_off:
 	        
             for app in openapps.keys():
             
@@ -219,25 +218,25 @@ def extract_usage(dataframe,precision=3600):
                     
                     openapps[app] = {'open': False}
             
-        if interaction == interactions['notification_seen']:
+        if interaction == interactions.notification_seen:
             timepoints = get_timestamps(curtime, precision=precision, row=row)
             timepoints['log_type'] = 'Notification Seen'
             
             alldata = pd.concat([alldata,timepoints], sort=False)
             
-        if interaction == interactions['notification_interruption']:
+        if interaction == interactions.notification_interruption:
             timepoints = get_timestamps(curtime, precision=precision, row=row)
             timepoints['log_type'] = 'Notification Interruption'
             
             alldata = pd.concat([alldata,timepoints], sort=False)
             
-        if interaction == interactions['screen_non_interactive']:
+        if interaction == interactions.screen_non_interactive:
             timepoints = get_timestamps(curtime, precision=precision, row=row)
             timepoints['log_type'] = 'Screen Non-interactive'
             
             alldata = pd.concat([alldata,timepoints], sort=False)
         
-        if interaction == interactions['screen_interactive']:
+        if interaction == interactions.screen_interactive:
             timepoints = get_timestamps(curtime, precision=precision, row=row)
             timepoints['log_type'] = 'Screen Interactive'
             
