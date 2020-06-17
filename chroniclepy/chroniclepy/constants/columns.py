@@ -1,0 +1,8 @@
+full_name = "app_fullname"
+record_type = "app_record_type"
+date_logged = "app_date"
+timezone = "app_timezone"
+datetime_start = "datetime_start"
+datetime_end = "app_datetime_end"
+duration_seconds = "app_duration_seconds"
+switch_app = "app_switch_app"
