@@ -1,4 +1,5 @@
 from chroniclepy import utils, summarise_modalities
+from chroniclepy.constants import columns
 from collections import Counter
 from datetime import datetime
 import pandas as pd
@@ -30,9 +31,9 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
             utils.logger("WARNING: No weekend data for %s..."%personID,level=1)
 
     # split columns and get recode columns
-    stdcols = ['participant_id', 'app_fullname', 'date', 'start_timestamp',
-           'end_timestamp', 'day', 'hour', 'quarter',
-           'duration_seconds', 'weekdayMTh', 'weekdaySTh', 'weekdayMF', 'switch_app',
+    stdcols = ['participant_id', columns.full_name, 'date', columns.datetime_start,
+           columns.datetime_end, 'day', 'hour', 'quarter',
+           columns.duration_seconds, 'weekdayMTh', 'weekdaySTh', 'weekdayMF', columns.switch_app,
            'endtime', 'starttime', 'duration_minutes', 'index', 'firstdate', 'lastdate', 'study_id', 'Unnamed: 0']
     engagecols = [x for x in preprocessed.columns if x.startswith('engage') and not x.endswith('dur')]
     engageall = [x for x in preprocessed.columns if x.startswith('engage')]

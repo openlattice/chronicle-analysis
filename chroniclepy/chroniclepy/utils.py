@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from chroniclepy.constants import columns
 from collections import Counter
 import dateutil.parser
 import pandas as pd
@@ -15,8 +16,8 @@ def get_dt(row):
       A potential downside of this is that when a person closes and re-opens an app
       within 10 milliseconds, it will be regarded as closed.
     '''    
-    zulutime = dateutil.parser.parse(row['ol.datelogged'])
-    localtime = zulutime.replace(tzinfo=timezone.utc).astimezone(tz=pytz.timezone(row['ol.timezone']))
+    zulutime = dateutil.parser.parse(row[columns.date_logged])
+    localtime = zulutime.replace(tzinfo=timezone.utc).astimezone(tz=pytz.timezone(row[columns.timezone]))
     # microsecond = min(round(localtime.microsecond / 10000)*10000, 990000)
     # localtime = localtime.replace(microsecond = microsecond)
     return localtime
@@ -26,16 +27,16 @@ def get_action(row):
     This function creates a column with a value 0 for foreground action, 1 for background
     action.  This can be used for sorting (when times are equal: foreground before background)
     '''
-    if row['ol.recordtype']=='Move to Foreground':
+    if row[columns.record_type]=='Move to Foreground':
         return 0
-    if row['ol.recordtype']=='Move to Background':
+    if row[columns.record_type]=='Move to Background':
         return 1
 
 def recode(row,recode):
     newcols = {x:None for x in recode.columns}
-    if row['app_fullname'] in recode.index:
+    if row[columns.full_name] in recode.index:
         for col in recode.columns:
-            newcols[col] = recode[col][row['app_fullname']]
+            newcols[col] = recode[col][row[columns.full_name]]
 
     return pd.Series(newcols)
 
@@ -132,15 +133,15 @@ def cut_first_last(dataset, includestartend, maxdays, first, last):
         last_cutoff = first_cutoff + timedelta(days = maxdays)
         last_day = first_cutoff + timedelta(days = maxdays)
     
-    if (len(dataset['end_timestamp']) == 0):
+    if (len(dataset[columns.datetime_end]) == 0):
         datelist = []
     else:
-        enddate_fix = min(last_day, max(dataset['end_timestamp']))
+        enddate_fix = min(last_day, max(dataset[columns.datetime_end]))
         datelist = pd.date_range(start = first_cutoff, end = enddate_fix, freq='D')
     
     dataset = dataset[
-        (dataset['start_timestamp'] >= first_cutoff) & \
-        (dataset['end_timestamp'] <= last_cutoff)].reset_index(drop=True)
+        (dataset[columns.datetime_start] >= first_cutoff) & \
+        (dataset[columns.datetime_end] <= last_cutoff)].reset_index(drop=True)
             
     return dataset, datelist
 
@@ -149,8 +150,8 @@ def add_session_durations(dataset):
     for sescol in engagecols:
         newcol = '%s_dur'%sescol
         sesids = np.where(dataset[sescol]==1)[0][1:]
-        starttimes = np.array(dataset.start_timestamp.loc[np.append([0],sesids)][:-1], dtype='datetime64[ns]')
-        endtimes = np.array(dataset.end_timestamp.loc[sesids-1], dtype='datetime64[ns]')
+        starttimes = np.array(dataset[columns.datetime_start].loc[np.append([0],sesids)][:-1], dtype='datetime64[ns]')
+        endtimes = np.array(dataset[columns.datetime_end].loc[sesids-1], dtype='datetime64[ns]')
         durs = (endtimes-starttimes)/ np.timedelta64(1, 'm')
         dataset[newcol] = 0
         for idx,sesid in enumerate(np.append([0],sesids)):
