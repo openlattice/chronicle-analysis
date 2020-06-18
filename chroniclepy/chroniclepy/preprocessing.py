@@ -236,7 +236,8 @@ def extract_usage(dataframe,precision=3600):
 
     if len(alldata)>0:
         alldata = alldata.sort_values(by=[columns.datetime_start,columns.datetime_end]).reset_index(drop=True)
-        return alldata[cols].reset_index(drop=True)
+        cols_to_select = list(set(cols).intersection(set(alldata.columns)))
+        return alldata[cols_to_select].reset_index(drop=True)
 
 
 def check_overlap_add_sessions(data, session_def = [5*60]):
