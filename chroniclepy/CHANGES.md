@@ -33,3 +33,9 @@
 
 1.5 - 01/29/2020
 * adding device shutdowns
+
+1.6 - 06/17/2020
+* update to work with preprocessed data exported from OpenLattice
+* backwards compatible
+* better structure in code
+* added UnitTests
