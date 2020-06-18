@@ -6,3 +6,4 @@ chroniclepy/.idea/
 chroniclepy/build/
 chroniclepy/chroniclepy.egg-info/
 chroniclepy/dist/
+.DS_Store
