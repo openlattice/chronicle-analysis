@@ -1,6 +1,6 @@
 from collections import Counter
-from chroniclepy.constants import columns
-from chroniclepy import utils
+from .constants import columns, interactions
+from . import utils
 import pandas as pd
 import numpy as np
 import os

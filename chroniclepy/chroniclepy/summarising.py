@@ -1,5 +1,5 @@
-from chroniclepy import utils, summarise_person, summarise_app_categories
-from chroniclepy.constants import columns
+from . import utils, summarise_person, summarise_app_categories, preprocessing
+from .constants import columns, interactions
 from datetime import datetime, timedelta
 from collections import Counter
 from pytz import timezone
@@ -28,12 +28,16 @@ def summary(infolder, outfolder, includestartend=False, recodefile=None,
     
     for idx,filenm in enumerate(files):
         utils.logger("LOG: Summarising file %s..."%filenm,level=1)
-        preprocessed = pd.read_csv(os.path.join(infolder,filenm),
-            parse_dates = [columns.datetime_start,columns.datetime_end],
-            date_parser = lambda x: pd.to_datetime(x.rpartition('-')[0]),
-            ).dropna(subset=[columns.full_name])
-        allapps = allapps.union(set(preprocessed[columns.full_name]))
+        preprocessed = pd.read_csv(os.path.join(infolder,filenm))
         personID = str(filenm).replace("ChronicleData_preprocessed_","").replace(".csv", "")
+        if not 'participant_id' in preprocessed.columns:
+            preprocessed['participant_id'] = personID
+
+        preprocessed = utils.backwards_compatibility(preprocessed)
+        preprocessed = preprocessed.dropna(subset=[columns.full_name])
+        preprocessed = preprocessing.add_preprocessed_columns(preprocessed)
+
+        allapps = allapps.union(set(preprocessed[columns.full_name]))
         person = summarise_person.summarise_person(
             preprocessed,
             personID = personID,

@@ -1,5 +1,5 @@
-from chroniclepy import utils, summarise_modalities
-from chroniclepy.constants import columns
+from . import utils, summarise_modalities
+from .constants import columns, interactions
 from collections import Counter
 from datetime import datetime
 import pandas as pd

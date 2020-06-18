@@ -1,11 +1,12 @@
 from datetime import timedelta
+from dateutil import parser
 from pytz import timezone
 import pandas as pd
 import numpy as np
 import os
 
-from chroniclepy.constants import interactions, columns
-from chroniclepy import utils
+from .constants import interactions, columns
+from . import utils
 
 def read_data(filenm):
     personid = "-".join(str(filenm).split(".")[-2].split("ChronicleData-")[1:])
@@ -52,14 +53,8 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
             "date": starttime.strftime("%Y-%m-%d"),
             "starttime": starttime.strftime("%H:%M:%S.%f"),
             "endtime": np.NaN,
-            "day": (starttime.weekday()+1)%7+1,
-            "weekdayMF": 1 if starttime.weekday() < 5 else 0,
-            "weekdayMTh": 1 if starttime.weekday() < 4 else 0,
-            "weekdaySTh": 1 if (starttime.weekday() < 4 or starttime.weekday()==6) else 0,
-            "hour": starttime.hour,
-            "quarter": int(np.floor(starttime.minute/15.))+1,
             columns.duration_seconds: np.NaN,
-            "columns.record_type": np.NaN,
+            columns.record_type: np.NaN,
             "participant_id": row['person'],
             columns.full_name: row[columns.full_name]
         }]
@@ -289,8 +284,6 @@ def check_overlap_add_sessions(data, session_def = [5*60]):
 
         # check appswitch
         data.at[idx, columns.switch_app] = 1-(row[columns.full_name]==data[columns.full_name].iloc[idx-1])*1
-        data['firstdate'] = min(data[columns.datetime_start]).date()
-        data['lastdate'] = max(data[columns.datetime_end]).date()
     return data.reset_index(drop=True)
 
 def log_exceed_durations_minutes(row, threshold, outfile):
@@ -304,23 +297,12 @@ def log_exceed_durations_minutes(row, threshold, outfile):
         ))
 
 def preprocess_dataframe(dataframe, precision=3600,sessioninterval = [5*60], logdir=None, logopts={}):
+    dataframe = utils.backwards_compatibility(dataframe)
     tmp = extract_usage(dataframe,precision=precision)
     if not isinstance(tmp,pd.DataFrame) or np.sum(tmp[columns.duration_seconds]) == 0:
         return None
         utils.logger("WARNING: File %s does not seem to contain relevant data.  Skipping..."%filename)
     data = check_overlap_add_sessions(tmp,session_def=sessioninterval)
-    data['duration_minutes'] = data[columns.duration_seconds]/60.
-    data = utils.add_session_durations(data)
-    
-    if 'log_exceed_durations_minutes' in logopts.keys():
-        if not os.path.exists(logdir):
-            os.mkdir(logdir)
-        for threshold in logopts['log_exceed_durations_minutes']:
-            subset = data[data.duration_minutes > float(threshold)]
-            outfile = os.path.join(logdir, "log_exceed_durations_minutes_%s.txt"%threshold)
-            if len(subset) > 0:
-                for idx, row in data[data.duration_minutes > threshold].iterrows():
-                    log_exceed_durations_minutes(row, threshold, outfile)
     return data
     
     
@@ -336,3 +318,35 @@ def preprocess_folder(infolder,outfolder,precision=3600,sessioninterval = [5*60]
         if data is not None:
             outfilename = filename.replace('ChronicleData','ChronicleData_preprocessed')
             data.to_csv(os.path.join(outfolder,outfilename),index=False)
+
+def add_preprocessed_columns(data):
+    data[columns.datetime_start] = data[columns.datetime_start].astype(str).replace('nan',)
+    data[columns.datetime_end] = data[columns.datetime_end].astype(str).replace('nan',None)
+
+    data[columns.datetime_start] = pd.to_datetime(data[columns.datetime_start].replace('nan', ''), infer_datetime_format = True)
+    data[columns.datetime_end] = pd.to_datetime(data[columns.datetime_end].replace('nan', ''), infer_datetime_format = True)
+    data['duration_minutes'] = data.apply(lambda x: x[columns.duration_seconds] / 60., axis = 1)
+    data['firstdate'] = min(data[columns.datetime_start]).date()
+    data['lastdate'] = max(data[columns.datetime_end]).date()
+    data['date'] = data.apply(lambda x: x[columns.datetime_start].date(), axis =1)
+    data[columns.datetime_start] = data.apply(lambda x: x[columns.datetime_start], axis = 1)
+    data[columns.datetime_end] = data.apply(lambda x: x[columns.datetime_end], axis = 1)
+    data["day"] = data.apply(lambda x: (x[columns.datetime_start].weekday() + 1) % 7 + 1, axis = 1)
+    data["weekdayMF"] = data.apply(lambda x: 1 if x[columns.datetime_start].weekday() < 5 else 0, axis = 1)
+    data["weekdayMTh"] = data.apply(lambda x: 1 if x[columns.datetime_start].weekday() < 4 else 0, axis = 1)
+    data["weekdaySTh"] = data.apply(lambda x: 1 if (x[columns.datetime_start].weekday() < 4 or x[columns.datetime_start].weekday() == 6) else 0, axis = 1)
+    data["hour"] = data.apply(lambda x: x[columns.datetime_start].hour, axis = 1)
+    data["quarter"] = data.apply(lambda x: utils.round_down_to_quarter(x[columns.datetime_start]), axis = 1)
+    data = utils.add_session_durations(data)
+    return data
+
+    # if 'log_exceed_durations_minutes' in logopts.keys():
+    #     if not os.path.exists(logdir):
+    #         os.mkdir(logdir)
+    #     for threshold in logopts['log_exceed_durations_minutes']:
+    #         subset = data[data.duration_minutes > float(threshold)]
+    #         outfile = os.path.join(logdir, "log_exceed_durations_minutes_%s.txt" % threshold)
+    #         if len(subset) > 0:
+    #             for idx, row in data[data.duration_minutes > threshold].iterrows():
+    #                 log_exceed_durations_minutes(row, threshold, outfile)
+

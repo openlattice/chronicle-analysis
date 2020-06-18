@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from chroniclepy.constants import columns
+from .constants import columns, interactions
 from collections import Counter
 import dateutil.parser
 import pandas as pd
@@ -114,12 +114,16 @@ def fill_appcat_quarterly(dataset,datelist,catlist):
 
 
 def cut_first_last(dataset, includestartend, maxdays, first, last):
-    first_parsed = dateutil.parser.parse(first)
-    last_parsed = dateutil.parser.parse(last)
-    
+    first_parsed = dateutil.parser.parse(str(first))
+    last_parsed = dateutil.parser.parse(str(last))
+
+    first_obs = min(dataset[columns.datetime_start])
+    last_obs = max(dataset[columns.datetime_end])
+
     # cutoff start: upper bound of first timepoint if not includestartend
     first_cutoff = first_parsed if includestartend \
         else first_parsed.replace(hour=0, minute=0, second=0, microsecond=0)+timedelta(days=1)
+    first_cutoff = first_cutoff.replace(tzinfo = first_obs.tzinfo)
     
     # cutoff end: lower bound of last timepoint if not includestartend
     last_cutoff = last_parsed if includestartend \
@@ -128,20 +132,24 @@ def cut_first_last(dataset, includestartend, maxdays, first, last):
     # last day to be included in datelist: day before last timepoint if not includestartend
     last_day = last_parsed if includestartend \
         else last_parsed.replace(hour=0, minute=0, second=0, microsecond=0)-timedelta(days=1)
+    last_day = last_day.replace(tzinfo = first_obs.tzinfo)
         
     if maxdays is not None:
         last_cutoff = first_cutoff + timedelta(days = maxdays)
-        last_day = first_cutoff + timedelta(days = maxdays)
+        last_day = (first_cutoff + timedelta(days = maxdays)).replace(tzinfo = first_obs.tzinfo)
     
     if (len(dataset[columns.datetime_end]) == 0):
         datelist = []
     else:
-        enddate_fix = min(last_day, max(dataset[columns.datetime_end]))
+        enddate_fix = min(
+            last_day,
+            max(dataset[columns.datetime_end])
+        )
         datelist = pd.date_range(start = first_cutoff, end = enddate_fix, freq='D')
     
     dataset = dataset[
         (dataset[columns.datetime_start] >= first_cutoff) & \
-        (dataset[columns.datetime_end] <= last_cutoff)].reset_index(drop=True)
+        (dataset[columns.datetime_end] <= last_day)].reset_index(drop=True)
             
     return dataset, datelist
 
@@ -162,3 +170,27 @@ def add_session_durations(dataset):
             dataset.loc[np.arange(lower,upper),newcol] = durs[idx]
     return dataset
 
+def backwards_compatibility(dataframe):
+    dataframe = dataframe.rename(
+        columns = {
+            'general.fullname': columns.full_name,
+            'ol.recordtype': columns.record_type,
+            'ol.datelogged': columns.date_logged,
+            'general.Duration': columns.duration_seconds,
+            'ol.datetimestart': columns.datetime_start,
+            'general.EndTime': columns.datetime_end,
+            'ol.timezone': columns.timezone,
+            'app_fullname': columns.full_name,
+            'start_timestamp': columns.datetime_start,
+            'end_timestamp': columns.datetime_end,
+            'duration_seconds': columns.duration_seconds,
+            'switch_app': columns.switch_app
+        },
+        errors = 'ignore'
+    )
+    return dataframe
+
+def round_down_to_quarter(x):
+    if pd.isna(x):
+        return None
+    return int(np.floor(x.minute / 15.)) + 1
