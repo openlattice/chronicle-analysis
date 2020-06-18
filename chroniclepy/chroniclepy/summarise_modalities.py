@@ -1,5 +1,6 @@
 from collections import Counter
-from chroniclepy import utils
+from .constants import columns, interactions
+from . import utils
 import pandas as pd
 import numpy as np
 import os
@@ -10,7 +11,7 @@ def summarise_daily(dataset,engagecols, datelist):
     # simple daily aggregate functions
     dailyfunctions = {
         "duration_minutes": ['sum'],
-        "switch_app": ['sum']
+        columns.switch_app: ['sum']
     }
     engagedurfunctions = {"%s_dur"%k: [lambda x: np.mean(np.unique(x))] for k in engagecols}
     dailyfunctions.update(engagedurfunctions)
@@ -33,7 +34,7 @@ def summarise_hourly(dataset,engagecols):
     # hourly daily aggregate functions
     hourlyfunctions = {
         "duration_minutes": ['sum'],
-        'switch_app': ['sum']
+        columns.switch_app: ['sum']
     }
     hourlyengagefunctions = {k: ['sum'] for k in engagecols}
     hourlyfunctions.update(hourlyengagefunctions)
@@ -44,8 +45,8 @@ def summarise_hourly(dataset,engagecols):
     hourly.columns = cols
 
     # fill days/hours of no usage
-    begin = np.min(dataset.start_timestamp).date()
-    end = np.max(dataset.end_timestamp).date()
+    begin = np.min(dataset[columns.datetime_start]).date()
+    end = np.max(dataset[columns.datetime_end]).date()
     if len(hourly) == 0:
         return hourly
     datelist = pd.date_range(start = begin, end = end, freq='D')
@@ -63,7 +64,7 @@ def summarise_quarterly(dataset,engagecols):
     # quarterly daily aggregate functions
     quarterlyfunctions = {
         "duration_minutes": {"dur": 'sum'},
-        'switch_app': {"appcnt": "sum"}
+        columns.switch_app: {"appcnt": "sum"}
     }
     quarterlyengagefunctions = {k: {"%s_num"%k: 'sum'} for k in engagecols}
     quarterlyfunctions.update(quarterlyengagefunctions)
@@ -74,7 +75,7 @@ def summarise_quarterly(dataset,engagecols):
     quarterly.columns = cols
 
     # fill day/hours/quarters of no usage
-    datelist = pd.date_range(start = np.min(dataset.start_timestamp).date(), end = np.max(dataset.end_timestamp).date(), freq='D')
+    datelist = pd.date_range(start = np.min(dataset[columns.datetime_start]).date(), end = np.max(dataset[columns.datetime_end]).date(), freq='D')
     quarterly = utils.fill_quarters(quarterly,datelist)
 
     # unstack hour and quarter index (long to wide)
@@ -104,7 +105,7 @@ def summarise_appcoding_daily(dataset,addedcols):
 
 def summarise_appcoding_hourly(dataset,addedcols):
     custom = None
-    datelist = pd.date_range(start = np.min(dataset.start_timestamp).date(), end = np.max(dataset.end_timestamp).date(), freq='D')
+    datelist = pd.date_range(start = np.min(dataset[columns.datetime_start]).date(), end = np.max(dataset[columns.datetime_end]).date(), freq='D')
     for addedcol in addedcols:
         catlist = list(Counter(dataset[addedcol]).keys())
         dataset = dataset.fillna(value = {addedcol:"NA"})
@@ -124,7 +125,7 @@ def summarise_appcoding_hourly(dataset,addedcols):
 
 def summarise_appcoding_quarterly(dataset,addedcols):
     custom = None
-    datelist = pd.date_range(start = np.min(dataset.start_timestamp).date(), end = np.max(dataset.end_timestamp).date(), freq='D')
+    datelist = pd.date_range(start = np.min(dataset[columns.datetime_start]).date(), end = np.max(dataset[columns.datetime_end]).date(), freq='D')
     for addedcol in addedcols:
         catlist = list(Counter(dataset[addedcol]).keys())
         dataset = dataset.fillna(value = {addedcol:"NA"})

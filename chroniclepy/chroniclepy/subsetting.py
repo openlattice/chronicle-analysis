@@ -1,4 +1,5 @@
-from chroniclepy import utils, summarise_person
+from . import utils, summarise_person
+from .constants import columns
 from datetime import datetime, timedelta
 from collections import Counter
 from pytz import timezone
@@ -18,23 +19,22 @@ def subset(infolder, outfolder, removefile=None, subsetfile = None):
     files = [x for x in os.listdir(infolder) if x.startswith("Chronicle")]
     for idx,filenm in enumerate(files):
         utils.logger("LOG: Subsetting file %s..."%filenm,level=1)
-        preprocessed = pd.read_csv(os.path.join(infolder,filenm),
-            parse_dates = ['start_timestamp','end_timestamp'],
-            date_parser = lambda x: pd.to_datetime(x.rpartition('-')[0]),
-            ).dropna(subset=['app_fullname'])
+        preprocessed = pd.read_csv(os.path.join(infolder,filenm)
+            )
+        preprocessed = utils.backwards_compatibility(preprocessed).dropna(subset=[columns.full_name])
             
         if isinstance(subsetfile,str):
-            subset = pd.read_csv(subsetfile,index_col='full_name').astype(str)
+            subset = pd.read_csv(subsetfile,index_col= 'full_name').astype(str)
             if len(subset.columns)>1:
                 utils.logger("WARNING: only 1 subset can be defined at a time.  Only the first column of the subset file will be used.")
             subsetname = list(subset.columns)[0]
             apps = list(subset.index[subset[subsetname]=='1'])
-            preprocessed = preprocessed[preprocessed.app_fullname.isin(apps)].reset_index(drop=True)
+            preprocessed = preprocessed[preprocessed[columns.full_name].isin(apps)].reset_index(drop=True)
 
         if isinstance(removefile,str):
             remove = pd.read_csv(removefile)['full_name']
             apps = list(remove)
-            preprocessed = preprocessed[~preprocessed.app_fullname.isin(apps)].reset_index(drop=True)
+            preprocessed = preprocessed[~preprocessed[columns.full_name].isin(apps)].reset_index(drop=True)
 
         outfilename = filenm.replace('ChronicleData_preprocessed','ChronicleData_subsetted')
         preprocessed.to_csv(os.path.join(outfolder, outfilename),index=False)

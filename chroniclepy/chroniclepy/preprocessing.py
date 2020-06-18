@@ -1,11 +1,12 @@
 from datetime import timedelta
+from dateutil import parser
 from pytz import timezone
 import pandas as pd
 import numpy as np
 import os
 
-from chroniclepy.constants import interactions
-from chroniclepy import utils
+from .constants import interactions, columns
+from . import utils
 
 def read_data(filenm):
     personid = "-".join(str(filenm).split(".")[-2].split("ChronicleData-")[1:])
@@ -23,16 +24,16 @@ def clean_data(thisdata):
     - sorts events from the same 10ms by (1) foreground, (2) background
     '''
 
-    thisdata = thisdata.dropna(subset=['ol.recordtype','ol.datelogged'])
+    thisdata = thisdata.dropna(subset=[columns.record_type, columns.date_logged])
     if len(thisdata)==0:
         return(thisdata)
-    thisdata = thisdata[thisdata['ol.recordtype'] != 'Usage Stat']
-    if not 'ol.timezone' in thisdata.keys() or any(thisdata['ol.timezone']==None):
+    thisdata = thisdata[thisdata[columns.record_type] != 'Usage Stat']
+    if not columns.timezone in thisdata.keys() or any(thisdata[columns.timezone]==None):
         utils.logger("WARNING: Record has no timezone information.  Registering reported time.")
-        thisdata['ol.timezone'] = "UTC"
-    thisdata = thisdata[['general.fullname','ol.recordtype','ol.datelogged','person','ol.timezone']]
+        thisdata[columns.timezone] = "UTC"
+    thisdata = thisdata[[columns.full_name,columns.record_type,columns.date_logged,'person',columns.timezone]]
     # fill timezone by preceding timezone and then backwards
-    thisdata = thisdata.sort_values(by=["ol.datelogged"]).reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
+    thisdata = thisdata.sort_values(by=[columns.date_logged]).reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
     thisdata['dt_logged'] = thisdata.apply(utils.get_dt,axis=1)
     thisdata['action'] = thisdata.apply(utils.get_action,axis=1)
     thisdata = thisdata.sort_values(by=['dt_logged', 'action']).reset_index(drop=True)
@@ -47,23 +48,17 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
     if not prevtime:
         starttime = curtime
         outtime = [{
-            "start_timestamp": starttime,
-            "end_timestamp": np.NaN,
+            columns.datetime_start: starttime,
+            columns.datetime_end: np.NaN,
             "date": starttime.strftime("%Y-%m-%d"),
             "starttime": starttime.strftime("%H:%M:%S.%f"),
             "endtime": np.NaN,
-            "day": (starttime.weekday()+1)%7+1,
-            "weekdayMF": 1 if starttime.weekday() < 5 else 0,
-            "weekdayMTh": 1 if starttime.weekday() < 4 else 0,
-            "weekdaySTh": 1 if (starttime.weekday() < 4 or starttime.weekday()==6) else 0,
-            "hour": starttime.hour,
-            "quarter": int(np.floor(starttime.minute/15.))+1,
-            "duration_seconds": np.NaN,
-            "log_type": np.NaN,
+            columns.duration_seconds: np.NaN,
+            columns.record_type: np.NaN,
             "participant_id": row['person'],
-            "app_fullname": row['general.fullname']
+            columns.full_name: row[columns.full_name]
         }]
-    
+
         return pd.DataFrame(outtime)
 
     #round down to precision
@@ -71,22 +66,22 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
     prevtimehour = prevtime.replace(microsecond=0,second=0,minute=0)
     seconds_since_prevtimehour = np.floor((prevtime-prevtimehour).seconds/precision)*precision
     prevtimerounded = prevtimehour+timedelta(seconds=seconds_since_prevtimehour)
-   
+
     # number of timepoints on precision scale (= new rows )
     timedif = (curtime-prevtimerounded)
     timepoints_n = int(np.floor(timedif.seconds/precision)+int(timedif.days*24*60*60/precision))
-   
+
     # run over timepoints and append datetimestamps
     delta = timedelta(seconds=0)
     outtime = []
-    
+
     for timepoint in range(timepoints_n+1):
         starttime = prevtime if timepoint == 0 else prevtimerounded+delta
         endtime = curtime if timepoint == timepoints_n else prevtimerounded+delta+timedelta(seconds=precision)
-        
+
         outmetrics = {
-            "start_timestamp": starttime,
-            "end_timestamp": endtime,
+            columns.datetime_start: starttime,
+            columns.datetime_end: endtime,
             "date": starttime.strftime("%Y-%m-%d"),
             "starttime": starttime.strftime("%H:%M:%S.%f"),
             "endtime": endtime.strftime("%H:%M:%S.%f"),
@@ -96,12 +91,12 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
             "weekdaySTh": 1 if (starttime.weekday() < 4 or starttime.weekday()==6) else 0,
             "hour": starttime.hour,
             "quarter": int(np.floor(starttime.minute/15.))+1,
-            "duration_seconds": (endtime-starttime).seconds
+            columns.duration_seconds: (endtime-starttime).seconds
         }
 
         outmetrics['participant_id'] = row['person']
-        outmetrics['app_fullname'] = row['general.fullname']
-       
+        outmetrics[columns.full_name] = row[columns.full_name]
+
         delta = delta+timedelta(seconds=precision)
         outtime.append(outmetrics)
 
@@ -113,10 +108,10 @@ def extract_usage(dataframe,precision=3600):
     '''
 
     cols = ['participant_id',
-            'app_fullname',
+            columns.full_name,
             'date',
-            'start_timestamp',
-            'end_timestamp',
+            columns.datetime_start,
+            columns.datetime_end,
             'starttime',
             'endtime',
             'day', # note: starts on Sunday !
@@ -125,8 +120,8 @@ def extract_usage(dataframe,precision=3600):
             'weekdaySTh',
             'hour',
             'quarter',
-            'duration_seconds',
-            'log_type']
+            columns.duration_seconds,
+            columns.record_type]
 
     alldata = pd.DataFrame()
     rawdata = clean_data(dataframe)
@@ -135,8 +130,8 @@ def extract_usage(dataframe,precision=3600):
 
     for idx, row in rawdata.iterrows():
 
-        interaction = row['ol.recordtype']
-        app = row['general.fullname']
+        interaction = row[columns.record_type]
+        app = row[columns.full_name]
 
         # decode timestamp and correct for timezone
         curtime = row.dt_logged
@@ -169,7 +164,7 @@ def extract_usage(dataframe,precision=3600):
 
                     timepoints = get_timestamps(curtime, latest_unbackgrounded['unbgd_time'], precision=precision, row=row)
 
-                    timepoints['log_type'] = 'App Usage'
+                    timepoints[columns.record_type] = 'App Usage'
 
                     alldata = pd.concat([alldata,timepoints], sort=False)
 
@@ -188,7 +183,7 @@ def extract_usage(dataframe,precision=3600):
                 # split up timepoints by precision
                 timepoints = get_timestamps(curtime,prevtime,precision=precision,row=row)
 
-                timepoints['log_type'] = 'App Usage'
+                timepoints[columns.record_type] = 'App Usage'
 
                 alldata = pd.concat([alldata,timepoints], sort=False)
                 
@@ -209,7 +204,7 @@ def extract_usage(dataframe,precision=3600):
                     # split up timepoints by precision
                     timepoints = get_timestamps(curtime,prevtime,precision=precision,row=row)
                     
-                    timepoints['log_type'] = 'Power Off'
+                    timepoints[columns.record_type] = 'Power Off'
 
                     alldata = pd.concat([alldata,timepoints], sort=False)
                     
@@ -217,30 +212,30 @@ def extract_usage(dataframe,precision=3600):
             
         if interaction == interactions.notification_seen:
             timepoints = get_timestamps(curtime, precision=precision, row=row)
-            timepoints['log_type'] = 'Notification Seen'
+            timepoints[columns.record_type] = 'Notification Seen'
             
             alldata = pd.concat([alldata,timepoints], sort=False)
             
         if interaction == interactions.notification_interruption:
             timepoints = get_timestamps(curtime, precision=precision, row=row)
-            timepoints['log_type'] = 'Notification Interruption'
+            timepoints[columns.record_type] = 'Notification Interruption'
             
             alldata = pd.concat([alldata,timepoints], sort=False)
             
         if interaction == interactions.screen_non_interactive:
             timepoints = get_timestamps(curtime, precision=precision, row=row)
-            timepoints['log_type'] = 'Screen Non-interactive'
+            timepoints[columns.record_type] = 'Screen Non-interactive'
             
             alldata = pd.concat([alldata,timepoints], sort=False)
         
         if interaction == interactions.screen_interactive:
             timepoints = get_timestamps(curtime, precision=precision, row=row)
-            timepoints['log_type'] = 'Screen Interactive'
+            timepoints[columns.record_type] = 'Screen Interactive'
             
             alldata = pd.concat([alldata,timepoints], sort=False)
 
     if len(alldata)>0:
-        alldata = alldata.sort_values(by=['start_timestamp','end_timestamp']).reset_index(drop=True)
+        alldata = alldata.sort_values(by=[columns.datetime_start,columns.datetime_end]).reset_index(drop=True)
         return alldata[cols].reset_index(drop=True)
 
 
@@ -249,13 +244,13 @@ def check_overlap_add_sessions(data, session_def = [5*60]):
     Function to loop over dataset, spot overlaps (and remove them), and add columns
     to indicate whether a new session has been started or not.
     '''
-    data = data[data.duration_seconds > 0].reset_index(drop=True)
+    data = data[data[columns.duration_seconds] > 0].reset_index(drop=True)
 
     # initiate session column(s)
     for sess in session_def:
         data['engage_%is'%int(sess)] = 0
 
-    data['switch_app'] = 0
+    data[columns.switch_app] = 0
     # loop over dataset:
     # - prevent overlap (with warning)
     # - check if a new session is started
@@ -265,21 +260,21 @@ def check_overlap_add_sessions(data, session_def = [5*60]):
                 data.at[idx, 'engage_%is'%int(sess)] = 1
 
         # check time between previous and this app usage
-        nousetime = row['start_timestamp'].astimezone(timezone("CET"))-data['end_timestamp'].iloc[idx-1].astimezone(timezone("CET"))
+        nousetime = row[columns.datetime_start].astimezone(timezone("CET"))-data[columns.datetime_end].iloc[idx-1].astimezone(timezone("CET"))
 
         # check overlap
-        if nousetime < timedelta(microseconds=0) and row['start_timestamp'].date == row['end_timestamp'].date:
+        if nousetime < timedelta(microseconds=0) and row[columns.datetime_start].date == row[columns.datetime_end].date:
             utils.logger("WARNING: Overlapping usage for participant %s: %s was open since %s when %s was openened on %s. \
             Manually closing %s..."%(
                 row['participant_id'],
-                data.iloc[idx-1]['app_fullname'],
-                data.iloc[idx-1]['start_timestamp'].strftime("%Y-%m-%d %H:%M:%S"),
-                row['app_fullname'],
-                row['start_timestamp'].strftime("%Y-%m-%d %H:%M:%S"),
-                data.iloc[idx-1]['app_fullname']
+                data.iloc[idx-1][columns.full_name],
+                data.iloc[idx-1][columns.datetime_start].strftime("%Y-%m-%d %H:%M:%S"),
+                row[columns.full_name],
+                row[columns.datetime_start].strftime("%Y-%m-%d %H:%M:%S"),
+                data.iloc[idx-1][columns.full_name]
             ))
-            data.at[idx-1,'end_timestamp'] = row['start_timestamp']
-            data.at[idx-1,'duration_seconds'] = (data.at[idx-1,'end_timestamp']-data.at[idx-1,'start_timestamp']).seconds
+            data.at[idx-1,columns.datetime_end] = row[columns.datetime_start]
+            data.at[idx-1, columns.duration_seconds] = (data.at[idx-1,columns.datetime_end]-data.at[idx-1,columns.datetime_start]).seconds
 
         # check sessions
         else:
@@ -288,43 +283,30 @@ def check_overlap_add_sessions(data, session_def = [5*60]):
                     data.at[idx, 'engage_%is'%int(sess)] = 1
 
         # check appswitch
-        data.at[idx,'switch_app'] = 1-(row['app_fullname']==data['app_fullname'].iloc[idx-1])*1
-        data['firstdate'] = min(data['start_timestamp']).date()
-        data['lastdate'] = max(data['end_timestamp']).date()
+        data.at[idx, columns.switch_app] = 1-(row[columns.full_name]==data[columns.full_name].iloc[idx-1])*1
     return data.reset_index(drop=True)
 
 def log_exceed_durations_minutes(row, threshold, outfile):
-    timestamp = row['start_timestamp'].astimezone(tz=timezone("UTC")).strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = row[columns.datetime_start].astimezone(tz=timezone("UTC")).strftime("%Y-%m-%d %H:%M:%S")
     with open(outfile, "a+") as fl:
         fl.write("Person {participant} used {app} more than {threshold} minutes on {timestamp}\n".format(
             participant = row['participant_id'],
-            app = row['app_fullname'],
+            app = row[columns.full_name],
             threshold = threshold,
             timestamp = timestamp
         ))
 
-def preprocess_dataframe(dataframe, precision=3600,sessioninterval = [5*60], logdir=None, logopts=None):
+def preprocess_dataframe(dataframe, precision=3600,sessioninterval = [5*60], logdir=None, logopts={}):
+    dataframe = utils.backwards_compatibility(dataframe)
     tmp = extract_usage(dataframe,precision=precision)
-    if not isinstance(tmp,pd.DataFrame) or np.sum(tmp['duration_seconds']) == 0:
+    if not isinstance(tmp,pd.DataFrame) or np.sum(tmp[columns.duration_seconds]) == 0:
         return None
         utils.logger("WARNING: File %s does not seem to contain relevant data.  Skipping..."%filename)
     data = check_overlap_add_sessions(tmp,session_def=sessioninterval)
-    data['duration_minutes'] = data['duration_seconds']/60.
-    data = utils.add_session_durations(data)
-    
-    if 'log_exceed_durations_minutes' in logopts.keys():
-        if not os.path.exists(logdir):
-            os.mkdir(logdir)
-        for threshold in logopts['log_exceed_durations_minutes']:
-            subset = data[data.duration_minutes > float(threshold)]
-            outfile = os.path.join(logdir, "log_exceed_durations_minutes_%s.txt"%threshold)
-            if len(subset) > 0:
-                for idx, row in data[data.duration_minutes > threshold].iterrows():
-                    log_exceed_durations_minutes(row, threshold, outfile)
     return data
     
     
-def preprocess_folder(infolder,outfolder,precision=3600,sessioninterval = [5*60], logdir=None, logopts=None):
+def preprocess_folder(infolder,outfolder,precision=3600,sessioninterval = [5*60], logdir=None, logopts={}):
 
     if not os.path.exists(outfolder):
         os.mkdir(outfolder)
@@ -336,3 +318,35 @@ def preprocess_folder(infolder,outfolder,precision=3600,sessioninterval = [5*60]
         if data is not None:
             outfilename = filename.replace('ChronicleData','ChronicleData_preprocessed')
             data.to_csv(os.path.join(outfolder,outfilename),index=False)
+
+def add_preprocessed_columns(data):
+    data[columns.datetime_start] = data[columns.datetime_start].astype(str).replace('nan',)
+    data[columns.datetime_end] = data[columns.datetime_end].astype(str).replace('nan',None)
+
+    data[columns.datetime_start] = pd.to_datetime(data[columns.datetime_start].replace('nan', ''), infer_datetime_format = True)
+    data[columns.datetime_end] = pd.to_datetime(data[columns.datetime_end].replace('nan', ''), infer_datetime_format = True)
+    data['duration_minutes'] = data.apply(lambda x: x[columns.duration_seconds] / 60., axis = 1)
+    data['firstdate'] = min(data[columns.datetime_start]).date()
+    data['lastdate'] = max(data[columns.datetime_end]).date()
+    data['date'] = data.apply(lambda x: x[columns.datetime_start].date(), axis =1)
+    data[columns.datetime_start] = data.apply(lambda x: x[columns.datetime_start], axis = 1)
+    data[columns.datetime_end] = data.apply(lambda x: x[columns.datetime_end], axis = 1)
+    data["day"] = data.apply(lambda x: (x[columns.datetime_start].weekday() + 1) % 7 + 1, axis = 1)
+    data["weekdayMF"] = data.apply(lambda x: 1 if x[columns.datetime_start].weekday() < 5 else 0, axis = 1)
+    data["weekdayMTh"] = data.apply(lambda x: 1 if x[columns.datetime_start].weekday() < 4 else 0, axis = 1)
+    data["weekdaySTh"] = data.apply(lambda x: 1 if (x[columns.datetime_start].weekday() < 4 or x[columns.datetime_start].weekday() == 6) else 0, axis = 1)
+    data["hour"] = data.apply(lambda x: x[columns.datetime_start].hour, axis = 1)
+    data["quarter"] = data.apply(lambda x: utils.round_down_to_quarter(x[columns.datetime_start]), axis = 1)
+    data = utils.add_session_durations(data)
+    return data
+
+    # if 'log_exceed_durations_minutes' in logopts.keys():
+    #     if not os.path.exists(logdir):
+    #         os.mkdir(logdir)
+    #     for threshold in logopts['log_exceed_durations_minutes']:
+    #         subset = data[data.duration_minutes > float(threshold)]
+    #         outfile = os.path.join(logdir, "log_exceed_durations_minutes_%s.txt" % threshold)
+    #         if len(subset) > 0:
+    #             for idx, row in data[data.duration_minutes > threshold].iterrows():
+    #                 log_exceed_durations_minutes(row, threshold, outfile)
+

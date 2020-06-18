@@ -1,4 +1,4 @@
-app_fullname:
+app_full_name:
   0: com.Slack
   1: com.facebook.orca
   2: com.facebook.orca
@@ -90,7 +90,7 @@ duration_minutes:
   19: 10.0
   20: 40.0
   21: 20.0
-duration_seconds:
+app_duration_seconds:
   0: 1800
   1: 600
   2: 1800
@@ -113,7 +113,7 @@ duration_seconds:
   19: 600
   20: 2400
   21: 1200
-end_timestamp:
+app_end_timestamp:
   0: '2018-07-31 19:30:00-07:00'
   1: '2018-07-31 21:00:00-07:00'
   2: '2018-07-31 21:30:00-07:00'
@@ -320,7 +320,7 @@ quarter:
   19: 1
   20: 2
   21: 1
-start_timestamp:
+app_start_timestamp:
   0: '2018-07-31 19:00:00-07:00'
   1: '2018-07-31 20:50:00-07:00'
   2: '2018-07-31 21:00:00-07:00'
@@ -366,7 +366,7 @@ starttime:
   19: '22:00:00.000000'
   20: '22:20:00.000000'
   21: '23:00:00.000000'
-switch_app:
+app_switch_app:
   0: 1
   1: 1
   2: 0
