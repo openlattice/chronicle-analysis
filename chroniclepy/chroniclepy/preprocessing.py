@@ -304,6 +304,11 @@ def preprocess_dataframe(dataframe, precision=3600,sessioninterval = [5*60], log
         return None
         utils.logger("WARNING: File %s does not seem to contain relevant data.  Skipping..."%filename)
     data = check_overlap_add_sessions(tmp,session_def=sessioninterval)
+    non_timed = tmp[tmp[columns.duration_seconds].isna()]
+    data = pd.concat([data, non_timed], ignore_index=True)\
+        .sort_values(columns.datetime_start)\
+        .reset_index(drop=True)
+
     return data
     
     
