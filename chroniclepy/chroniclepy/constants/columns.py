@@ -1,4 +1,5 @@
 full_name = "app_full_name"
+title = "app_title"
 record_type = "app_record_type"
 date_logged = "app_date"
 timezone = "app_timezone"

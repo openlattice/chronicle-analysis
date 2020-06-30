@@ -31,7 +31,7 @@ def clean_data(thisdata):
     if not columns.timezone in thisdata.keys() or any(thisdata[columns.timezone]==None):
         utils.logger("WARNING: Record has no timezone information.  Registering reported time.")
         thisdata[columns.timezone] = "UTC"
-    thisdata = thisdata[[columns.full_name,columns.record_type,columns.date_logged,'person',columns.timezone]]
+    thisdata = thisdata[[columns.title, columns.full_name,columns.record_type,columns.date_logged,'person',columns.timezone]]
     # fill timezone by preceding timezone and then backwards
     thisdata = thisdata.sort_values(by=[columns.date_logged]).reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
     thisdata['dt_logged'] = thisdata.apply(utils.get_dt,axis=1)
@@ -56,7 +56,8 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
             columns.duration_seconds: np.NaN,
             columns.record_type: np.NaN,
             "participant_id": row['person'],
-            columns.full_name: row[columns.full_name]
+            columns.full_name: row[columns.full_name],
+            columns.title: row[columns.title]
         }]
 
         return pd.DataFrame(outtime)
@@ -96,6 +97,7 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
 
         outmetrics['participant_id'] = row['person']
         outmetrics[columns.full_name] = row[columns.full_name]
+        outmetrics[columns.title] = row[columns.title]
 
         delta = delta+timedelta(seconds=precision)
         outtime.append(outmetrics)
@@ -109,6 +111,7 @@ def extract_usage(dataframe,precision=3600):
 
     cols = ['participant_id',
             columns.full_name,
+            columns.title,
             'date',
             columns.datetime_start,
             columns.datetime_end,
