@@ -31,6 +31,8 @@ def clean_data(thisdata):
     if not columns.timezone in thisdata.keys() or any(thisdata[columns.timezone]==None):
         utils.logger("WARNING: Record has no timezone information.  Registering reported time.")
         thisdata[columns.timezone] = "UTC"
+    if not columns.title in thisdata.columns:
+        thisdata[columns.title] = ""
     thisdata = thisdata[[columns.title, columns.full_name,columns.record_type,columns.date_logged,'person',columns.timezone]]
     # fill timezone by preceding timezone and then backwards
     thisdata = thisdata.sort_values(by=[columns.date_logged]).reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
@@ -329,12 +331,14 @@ def preprocess_folder(infolder,outfolder,precision=3600,sessioninterval = [5*60]
             data.to_csv(os.path.join(outfolder,outfilename),index=False)
 
 def add_preprocessed_columns(data):
+    if data.shape[0] == 0:
+        return data
     data[columns.datetime_start] = data[columns.datetime_start].astype(str).replace('nan',)
     data[columns.datetime_end] = data[columns.datetime_end].astype(str).replace('nan',None)
 
     data[columns.datetime_start] = pd.to_datetime(data[columns.datetime_start].replace('nan', ''), infer_datetime_format = True)
     data[columns.datetime_end] = pd.to_datetime(data[columns.datetime_end].replace('nan', ''), infer_datetime_format = True)
-    data['duration_minutes'] = data.apply(lambda x: x[columns.duration_seconds] / 60., axis = 1)
+    data['duration_minutes'] = data.apply(lambda x: x[columns.duration_seconds] / 60. , axis = 1)
     data['firstdate'] = min(data[columns.datetime_start]).date()
     data['lastdate'] = max(data[columns.datetime_end]).date()
     data['date'] = data.apply(lambda x: x[columns.datetime_start].date(), axis =1)

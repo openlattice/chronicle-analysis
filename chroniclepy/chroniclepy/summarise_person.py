@@ -11,10 +11,15 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
     weekdefinition = 'weekdayMF', recodefile=None, includestartend = False,
     splitday = False, daytime = "10:00", nighttime = "22:00", maxdays = None
     ):
-    
-    
+
+    # for now not using non-duration timepoints
+    preprocessed = preprocessed[~preprocessed.lastdate.isnull()]
+    if len(preprocessed) == 0:
+        utils.logger("WARNING: No data for %s..."%personID,level=1)
+        return pd.DataFrame()
+
     preprocessed, datelist = utils.cut_first_last(preprocessed, includestartend, maxdays, first = preprocessed.firstdate.iloc[0], last = preprocessed.lastdate.iloc[0])
-    
+
     if len(preprocessed) == 0:
         utils.logger("WARNING: No data for %s..."%personID,level=1)
         return pd.DataFrame()

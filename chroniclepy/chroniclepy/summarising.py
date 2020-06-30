@@ -38,6 +38,8 @@ def summary(infolder, outfolder, includestartend=False, recodefile=None,
         preprocessed = preprocessing.add_preprocessed_columns(preprocessed)
 
         allapps = allapps.union(set(preprocessed[columns.full_name]))
+        if preprocessed.shape[0] == 0:
+            continue
         person = summarise_person.summarise_person(
             preprocessed,
             personID = personID,
