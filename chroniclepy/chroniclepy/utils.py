@@ -184,7 +184,8 @@ def backwards_compatibility(dataframe):
             'start_timestamp': columns.datetime_start,
             'end_timestamp': columns.datetime_end,
             'duration_seconds': columns.duration_seconds,
-            'switch_app': columns.switch_app
+            'switch_app': columns.switch_app,
+            'ol.title': columns.title
         },
         errors = 'ignore'
     )
@@ -194,3 +195,24 @@ def round_down_to_quarter(x):
     if pd.isna(x):
         return None
     return int(np.floor(x.minute / 15.)) + 1
+
+
+def combine_flags(row):
+    flags = []
+    if row.no_usage:
+        flags.append("LARGE TIME GAP")
+    if row.long_usage:
+        flags.append("LONG APP DURATION")
+    return flags
+
+
+def add_warnings(df):
+    df['no_usage'] = pd.to_datetime(df[columns.datetime_start]) - \
+                     pd.to_datetime(df[columns.datetime_end].shift()) > \
+                     timedelta(days=1)
+    df['long_usage'] = df[columns.duration_seconds] > 3*60*60
+    df[columns.flags] = df.apply(combine_flags, axis=1)
+    df = df.drop(['no_usage', 'long_usage'], axis=1)
+    return df
+
+
