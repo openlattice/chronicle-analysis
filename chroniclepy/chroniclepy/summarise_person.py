@@ -13,7 +13,7 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
     ):
 
     # for now not using non-duration timepoints
-    preprocessed = preprocessed[~preprocessed.lastdate.isnull()]
+    preprocessed = preprocessed[~preprocessed[columns.prep_datetime_end].isnull()]
     if len(preprocessed) == 0:
         utils.logger("WARNING: No data for %s..."%personID,level=1)
         return pd.DataFrame()
@@ -36,9 +36,9 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
             utils.logger("WARNING: No weekend data for %s..."%personID,level=1)
 
     # split columns and get recode columns
-    stdcols = ['participant_id', columns.full_name, 'date', columns.datetime_start,
-           columns.datetime_end, 'day', 'hour', 'quarter',
-           columns.duration_seconds, 'weekdayMTh', 'weekdaySTh', 'weekdayMF', columns.switch_app,
+    stdcols = ['participant_id', columns.full_name, 'date', columns.prep_datetime_start,
+               columns.prep_datetime_end, 'day', 'hour', 'quarter',
+               columns.prep_duration_seconds, 'weekdayMTh', 'weekdaySTh', 'weekdayMF', columns.switch_app,
            'endtime', 'starttime', 'duration_minutes', 'index', 'firstdate', 'lastdate', 'study_id', 'Unnamed: 0']
     engagecols = [x for x in preprocessed.columns if x.startswith('engage') and not x.endswith('dur')]
     engageall = [x for x in preprocessed.columns if x.startswith('engage')]
