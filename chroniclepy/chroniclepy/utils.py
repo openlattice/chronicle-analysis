@@ -16,7 +16,7 @@ def get_dt(row):
       A potential downside of this is that when a person closes and re-opens an app
       within 10 milliseconds, it will be regarded as closed.
     '''    
-    zulutime = dateutil.parser.parse(row[columns.date_logged])
+    zulutime = dateutil.parser.parse(row[columns.raw_date_logged])
     localtime = zulutime.replace(tzinfo=timezone.utc).astimezone(tz=pytz.timezone(row[columns.timezone]))
     # microsecond = min(round(localtime.microsecond / 10000)*10000, 990000)
     # localtime = localtime.replace(microsecond = microsecond)
@@ -27,9 +27,9 @@ def get_action(row):
     This function creates a column with a value 0 for foreground action, 1 for background
     action.  This can be used for sorting (when times are equal: foreground before background)
     '''
-    if row[columns.record_type]=='Move to Foreground':
+    if row[columns.raw_record_type]== 'Move to Foreground':
         return 0
-    if row[columns.record_type]=='Move to Background':
+    if row[columns.raw_record_type]== 'Move to Background':
         return 1
 
 def recode(row,recode):
@@ -117,8 +117,8 @@ def cut_first_last(dataset, includestartend, maxdays, first, last):
     first_parsed = dateutil.parser.parse(str(first))
     last_parsed = dateutil.parser.parse(str(last))
 
-    first_obs = min(dataset[columns.datetime_start])
-    last_obs = max(dataset[columns.datetime_end])
+    first_obs = min(dataset[columns.prep_datetime_start])
+    last_obs = max(dataset[columns.prep_datetime_end])
 
     # cutoff start: upper bound of first timepoint if not includestartend
     first_cutoff = first_parsed if includestartend \
@@ -138,18 +138,18 @@ def cut_first_last(dataset, includestartend, maxdays, first, last):
         last_cutoff = first_cutoff + timedelta(days = maxdays)
         last_day = (first_cutoff + timedelta(days = maxdays)).replace(tzinfo = first_obs.tzinfo)
     
-    if (len(dataset[columns.datetime_end]) == 0):
+    if (len(dataset[columns.prep_datetime_end]) == 0):
         datelist = []
     else:
         enddate_fix = min(
             last_day,
-            max(dataset[columns.datetime_end])
+            max(dataset[columns.prep_datetime_end])
         )
         datelist = pd.date_range(start = first_cutoff, end = enddate_fix, freq='D')
     
     dataset = dataset[
-        (dataset[columns.datetime_start] >= first_cutoff) & \
-        (dataset[columns.datetime_end] <= last_day)].reset_index(drop=True)
+        (dataset[columns.prep_datetime_start] >= first_cutoff) & \
+        (dataset[columns.prep_datetime_end] <= last_day)].reset_index(drop=True)
             
     return dataset, datelist
 
@@ -158,8 +158,8 @@ def add_session_durations(dataset):
     for sescol in engagecols:
         newcol = '%s_dur'%sescol
         sesids = np.where(dataset[sescol]==1)[0][1:]
-        starttimes = np.array(dataset[columns.datetime_start].loc[np.append([0],sesids)][:-1], dtype='datetime64[ns]')
-        endtimes = np.array(dataset[columns.datetime_end].loc[sesids-1], dtype='datetime64[ns]')
+        starttimes = np.array(dataset[columns.prep_datetime_start].loc[np.append([0], sesids)][:-1], dtype='datetime64[ns]')
+        endtimes = np.array(dataset[columns.prep_datetime_end].loc[sesids-1], dtype='datetime64[ns]')
         durs = (endtimes-starttimes)/ np.timedelta64(1, 'm')
         dataset[newcol] = 0
         for idx,sesid in enumerate(np.append([0],sesids)):
@@ -174,16 +174,16 @@ def backwards_compatibility(dataframe):
     dataframe = dataframe.rename(
         columns = {
             'general.fullname': columns.full_name,
-            'ol.recordtype': columns.record_type,
-            'ol.datelogged': columns.date_logged,
-            'general.Duration': columns.duration_seconds,
-            'ol.datetimestart': columns.datetime_start,
-            'general.EndTime': columns.datetime_end,
+            'ol.recordtype': columns.prep_record_type,
+            'ol.datelogged': columns.prep_date_logged,
+            'general.Duration': columns.prep_duration_seconds,
+            'ol.datetimestart': columns.prep_datetime_start,
+            'general.EndTime': columns.prep_datetime_end,
             'ol.timezone': columns.timezone,
             'app_fullname': columns.full_name,
-            'start_timestamp': columns.datetime_start,
-            'end_timestamp': columns.datetime_end,
-            'duration_seconds': columns.duration_seconds,
+            'start_timestamp': columns.prep_datetime_start,
+            'end_timestamp': columns.prep_datetime_end,
+            'duration_seconds': columns.prep_duration_seconds,
             'switch_app': columns.switch_app,
             'ol.title': columns.title
         },
@@ -207,10 +207,10 @@ def combine_flags(row):
 
 
 def add_warnings(df):
-    df['no_usage'] = pd.to_datetime(df[columns.datetime_start]) - \
-                     pd.to_datetime(df[columns.datetime_end].shift()) > \
+    df['no_usage'] = pd.to_datetime(df[columns.prep_datetime_start], utc=True) - \
+                     pd.to_datetime(df[columns.prep_datetime_end].shift(), utc= True) > \
                      timedelta(days=1)
-    df['long_usage'] = df[columns.duration_seconds] > 3*60*60
+    df['long_usage'] = df[columns.prep_duration_seconds] > 3 * 60 * 60
     df[columns.flags] = df.apply(combine_flags, axis=1)
     df = df.drop(['no_usage', 'long_usage'], axis=1)
     return df
