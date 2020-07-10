@@ -36,14 +36,15 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
             utils.logger("WARNING: No weekend data for %s..."%personID,level=1)
 
     # split columns and get recode columns
-    stdcols = ['participant_id', columns.full_name, 'date', columns.prep_datetime_start,
-               columns.prep_datetime_end, 'day', 'hour', 'quarter',
+    stdcols = ['participant_id', columns.full_name, columns.title, columns.raw_record_type, columns.prep_datetime_start,
+               columns.prep_datetime_end, 'day', 'hour', 'quarter', 'date', columns.prep_record_type, columns.flags,
                columns.prep_duration_seconds, 'weekdayMTh', 'weekdaySTh', 'weekdayMF', columns.switch_app,
            'endtime', 'starttime', 'duration_minutes', 'index', 'firstdate', 'lastdate', 'study_id', 'Unnamed: 0']
-    engagecols = [x for x in preprocessed.columns if x.startswith('engage') and not x.endswith('dur')]
-    engageall = [x for x in preprocessed.columns if x.startswith('engage')]
+    engagecols = [x for x in preprocessed.columns if 'engage' in x and not x.endswith('dur')]
+    engageall = [x for x in preprocessed.columns if 'engage' in x]
     noncustom = set(stdcols).union(set(engageall))
     custom = set(preprocessed.columns)-noncustom
+    engagecols = []
     
     for col in engagecols:
         preprocessed[col] = preprocessed[col].astype(int)

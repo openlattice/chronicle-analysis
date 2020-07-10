@@ -144,7 +144,7 @@ def extract_usage(dataframe,precision=3600):
     for idx, row in rawdata.iterrows():
 
         if idx % steps == 0:
-            bar.update(int(idx/steps))
+            bar.update(min(int(idx/steps), steps))
 
         interaction = row[columns.raw_record_type]
         app = row[columns.full_name]
