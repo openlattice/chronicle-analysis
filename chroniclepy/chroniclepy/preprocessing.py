@@ -143,9 +143,7 @@ def extract_usage(dataframe,precision=3600):
 
     for idx, row in rawdata.iterrows():
 
-        if steps == 0:
-            bar.update(100)
-        else:
+        if steps != 0:
             if idx % steps == 0:
                 bar.update(min(int(idx/steps), steps))
 
