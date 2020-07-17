@@ -34,6 +34,7 @@ def clean_data(thisdata):
         thisdata[columns.timezone] = "UTC"
     if not columns.title in thisdata.columns:
         thisdata[columns.title] = ""
+    thisdata[columns.title] = thisdata[columns.title].fillna("")
     thisdata = thisdata[[columns.title, columns.full_name, columns.raw_record_type, columns.raw_date_logged, 'person', columns.timezone]]
     # fill timezone by preceding timezone and then backwards
     thisdata = thisdata.sort_values(by=[columns.raw_date_logged]).reset_index(drop=True).fillna(method="ffill").fillna(method="bfill")
@@ -95,7 +96,7 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
             "weekdaySTh": 1 if (starttime.weekday() < 4 or starttime.weekday()==6) else 0,
             "hour": starttime.hour,
             "quarter": int(np.floor(starttime.minute/15.))+1,
-            columns.prep_duration_seconds: (endtime - starttime).seconds
+            columns.prep_duration_seconds: np.round((endtime - starttime).total_seconds())
         }
 
         outmetrics['participant_id'] = row['person']
@@ -325,6 +326,8 @@ def preprocess_dataframe(dataframe, precision=3600,sessioninterval = [5*60], log
     data = check_overlap_add_sessions(tmp,session_def=sessioninterval)
     data = utils.add_warnings(data)
     non_timed = tmp[tmp[columns.prep_duration_seconds].isna()]
+    flagcols = [x for x in non_timed.columns if 'engage' in x or 'switch' in x]
+    non_timed[flagcols] = None
     data = pd.concat([data, non_timed], ignore_index=True, sort=False)\
         .sort_values(columns.prep_datetime_start)\
         .reset_index(drop=True)

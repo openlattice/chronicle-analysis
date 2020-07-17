@@ -1,4 +1,4 @@
-user_interaction = 'Unknown importance: 7'
+user_interaction = 'User Interaction'
 notification_seen = 'Unknown importance: 10'
 notification_interruption = 'Unknown importance: 12'
 power_off = 'Unknown importance: 26'
