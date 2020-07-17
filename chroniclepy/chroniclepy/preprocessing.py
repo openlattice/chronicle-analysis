@@ -3,7 +3,6 @@ from dateutil import parser
 from pytz import timezone
 import pandas as pd
 import numpy as np
-import progressbar
 import os
 
 from .constants import interactions, columns
@@ -137,16 +136,7 @@ def extract_usage(dataframe,precision=3600):
 
     steps = int(len(rawdata)/50)
 
-    bar = progressbar.ProgressBar(maxval=50, \
-                                  widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-    bar.start()
-
-
     for idx, row in rawdata.iterrows():
-
-        if steps != 0:
-            if idx % steps == 0:
-                bar.update(min(int(idx/steps), steps))
 
         interaction = row[columns.raw_record_type]
         app = row[columns.full_name]
@@ -256,8 +246,6 @@ def extract_usage(dataframe,precision=3600):
         alldata = alldata.sort_values(by=[columns.prep_datetime_start, columns.prep_datetime_end]).reset_index(drop=True)
         cols_to_select = list(set(cols).intersection(set(alldata.columns)))
         return alldata[cols_to_select].reset_index(drop=True)
-
-    bar.finish()
 
 
 def check_overlap_add_sessions(data, session_def = [5*60]):
