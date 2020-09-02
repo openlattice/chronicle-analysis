@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='chroniclepy',
-      version='1.6',
+      version='1.7',
       description='Package for preprocessing Chronicle data.',
       author='OpenLattice',
       author_email='info@openlattice.com',
