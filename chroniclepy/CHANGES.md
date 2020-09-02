@@ -39,3 +39,11 @@
 * backwards compatible
 * better structure in code
 * added UnitTests
+
+1.7 - 09/01/2020
+* minor bug fixes on column names
+* fix missing record_type, summary, title
+* add flags
+* split up column names betweeen preprocessed and raw, progressbar
+* bugfix when less records than steps
+* remove progressbar, messes up rundeck
