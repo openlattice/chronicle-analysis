@@ -45,8 +45,8 @@ def summarise_hourly(dataset,engagecols):
     hourly.columns = cols
 
     # fill days/hours of no usage
-    begin = np.min(dataset[columns.datetime_start]).date()
-    end = np.max(dataset[columns.datetime_end]).date()
+    begin = np.min(dataset[columns.prep_datetime_start]).date()
+    end = np.max(dataset[columns.prep_datetime_end]).date()
     if len(hourly) == 0:
         return hourly
     datelist = pd.date_range(start = begin, end = end, freq='D')
@@ -75,7 +75,7 @@ def summarise_quarterly(dataset,engagecols):
     quarterly.columns = cols
 
     # fill day/hours/quarters of no usage
-    datelist = pd.date_range(start = np.min(dataset[columns.datetime_start]).date(), end = np.max(dataset[columns.datetime_end]).date(), freq='D')
+    datelist = pd.date_range(start = np.min(dataset[columns.prep_datetime_start]).date(), end = np.max(dataset[columns.prep_datetime_end]).date(), freq='D')
     quarterly = utils.fill_quarters(quarterly,datelist)
 
     # unstack hour and quarter index (long to wide)
@@ -105,7 +105,7 @@ def summarise_appcoding_daily(dataset,addedcols):
 
 def summarise_appcoding_hourly(dataset,addedcols):
     custom = None
-    datelist = pd.date_range(start = np.min(dataset[columns.datetime_start]).date(), end = np.max(dataset[columns.datetime_end]).date(), freq='D')
+    datelist = pd.date_range(start = np.min(dataset[columns.prep_datetime_start]).date(), end = np.max(dataset[columns.prep_datetime_end]).date(), freq='D')
     for addedcol in addedcols:
         catlist = list(Counter(dataset[addedcol]).keys())
         dataset = dataset.fillna(value = {addedcol:"NA"})
@@ -125,7 +125,7 @@ def summarise_appcoding_hourly(dataset,addedcols):
 
 def summarise_appcoding_quarterly(dataset,addedcols):
     custom = None
-    datelist = pd.date_range(start = np.min(dataset[columns.datetime_start]).date(), end = np.max(dataset[columns.datetime_end]).date(), freq='D')
+    datelist = pd.date_range(start = np.min(dataset[columns.prep_datetime_start]).date(), end = np.max(dataset[columns.prep_datetime_end]).date(), freq='D')
     for addedcol in addedcols:
         catlist = list(Counter(dataset[addedcol]).keys())
         dataset = dataset.fillna(value = {addedcol:"NA"})
