@@ -104,6 +104,10 @@ An example statement for the example data with all custom arguments:
 When running the preprocessing, the data is transformed into a table for each participant with the following variables:
 - *participant_id:* Cut out from the csv name.
 - *app_fullname:* The name of the app as it appears on the raw data.
+- *app_data_type:* The type of interaction with app.
+- *app_title:* The title of the app
+- *app_engage_60s:* T/F - was it the first time person used their phone is x minutes/seconds 
+- *app_switch_app:* T/F - app was a different app than the one before
 - *date:* The date.
 - *start_timestamp:* The start of the app usage
 - *end_timestamp:* The end of the app usage
