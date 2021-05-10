@@ -144,8 +144,7 @@ def extract_usage(dataframe,precision=3600):
     latest_unbackgrounded = False
 
     for idx, row in rawdata.iterrows():
-        tot.append(time.clock() - start_time)
-        start_time = time.clock()
+        
         interaction = row[columns.raw_record_type]
         app = row[columns.full_name]
 
