@@ -24,8 +24,6 @@ def clean_data(thisdata):
     - extracts datetime information and rounds to 10ms
     - sorts events from the same 10ms by (1) foreground, (2) background
     '''
-    start_time = time.clock()
-    print(len(thisdata))
     utils.logger("Cleaning data", level = 1)
     thisdata = thisdata.dropna(subset=[columns.raw_record_type, columns.raw_date_logged])
     if len(thisdata)==0:
@@ -44,7 +42,6 @@ def clean_data(thisdata):
     thisdata['action'] = thisdata.apply(utils.get_action,axis=1)
     thisdata = thisdata.sort_values(by=['dt_logged', 'action']).reset_index(drop=True)
 
-    print("took", time.clock() - start_time)
     return thisdata.drop(['action'],axis=1)
 
 def get_timestamps(curtime, prevtime=False, row=None, precision=60):
@@ -58,6 +55,9 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
         outtime = [{
             columns.prep_datetime_start: starttime,
             columns.prep_datetime_end: np.NaN,
+            "date": starttime.strftime("%Y-%m-%d"),
+            "starttime": starttime.strftime("%H:%M:%S.%f"),
+            "endtime": np.NaN,
             columns.prep_duration_seconds: np.NaN,
             columns.prep_record_type: np.NaN,
             "participant_id": row['person'],
@@ -88,6 +88,15 @@ def get_timestamps(curtime, prevtime=False, row=None, precision=60):
         outmetrics = {
             columns.prep_datetime_start: starttime,
             columns.prep_datetime_end: endtime,
+            "date": starttime.strftime("%Y-%m-%d"),
+            "starttime": starttime.strftime("%H:%M:%S.%f"),
+            "endtime": endtime.strftime("%H:%M:%S.%f"),
+            "day": (starttime.weekday()+1)%7+1,
+            "weekdayMF": 1 if starttime.weekday() < 5 else 0,
+            "weekdayMTh": 1 if starttime.weekday() < 4 else 0,
+            "weekdaySTh": 1 if (starttime.weekday() < 4 or starttime.weekday()==6) else 0,
+            "hour": starttime.hour,
+            "quarter": int(np.floor(starttime.minute/15.))+1,
             columns.prep_duration_seconds: np.round((endtime - starttime).total_seconds())
         }
 
@@ -108,8 +117,17 @@ def extract_usage(dataframe,precision=3600):
     cols = ['participant_id',
             columns.full_name,
             columns.title,
+            'date',
             columns.prep_datetime_start,
             columns.prep_datetime_end,
+            'starttime',
+            'endtime',
+            'day',  # note: starts on Sunday !
+            'weekdayMF',
+            'weekdayMTh',
+            'weekdaySTh',
+            'hour',
+            'quarter',
             columns.prep_duration_seconds,
             columns.prep_record_type]
 
@@ -124,8 +142,6 @@ def extract_usage(dataframe,precision=3600):
     rawdata = clean_data(dataframe)
     openapps = {}
     latest_unbackgrounded = False
-    start_time = time.clock()
-    tot = []
 
     for idx, row in rawdata.iterrows():
         tot.append(time.clock() - start_time)
@@ -213,15 +229,13 @@ def extract_usage(dataframe,precision=3600):
                     
                     openapps[app] = {'open': False}
         
-
-
+        # if the interaction is a part of screen non/interactive or notifications...
+        # logic should be the same
         if interaction in other_interactions.keys():
             timepoints = get_timestamps(curtime, precision=precision, row=row)
             timepoints[columns.prep_record_type] = other_interactions[interaction]
-            
             alldata.append(timepoints)
-    print(sum(tot))
-    print(sum(tot)/len(tot))
+
     alldata = pd.concat(alldata, axis = 0)
     if len(alldata)>0:
         alldata = alldata.sort_values(by=[columns.prep_datetime_start, columns.prep_datetime_end]).reset_index(drop=True)
