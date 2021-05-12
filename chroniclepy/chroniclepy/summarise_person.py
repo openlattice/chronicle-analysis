@@ -79,7 +79,7 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
         nighttime_dt = datetime.strptime(nighttime, "%H:%M")
     
         # daytime
-        daytime_df = preprocessed[(preprocessed.start_timestamp.dt.time > daytime_dt.time()) & (preprocessed.start_timestamp.dt.time < nighttime_dt.time())]
+        daytime_df = preprocessed[(preprocessed.app_start_timestamp.dt.time > daytime_dt.time()) & (preprocessed.app_start_timestamp.dt.time < nighttime_dt.time())]
         
         if len(daytime_df) > 0:
             data['daytime'] = summarise_modalities.summarise_daily(daytime_df.reset_index(drop=True),engagecols, datelist)
@@ -91,7 +91,7 @@ def summarise_person(preprocessed,personID = None, quarterly=False, splitweek = 
             utils.logger("WARNING: No daytime data for %s..."%personID,level=1)
 
         # nighttime
-        nighttime_df = preprocessed[(preprocessed.start_timestamp < nighttime_dt) | (preprocessed.start_timestamp > nighttime_dt)]
+        nighttime_df = preprocessed[(preprocessed.app_start_timestamp.dt.time < daytime_dt.time()) | (preprocessed.app_start_timestamp.dt.time > nighttime_dt.time())]
 
         if len(nighttime) > 0:
             data['nighttime'] = summarise_modalities.summarise_daily(nighttime_df.reset_index(drop=True),engagecols, datelist)

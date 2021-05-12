@@ -4,6 +4,7 @@ from pytz import timezone
 import pandas as pd
 import numpy as np
 import os
+import time
 
 from .constants import interactions, columns
 from . import utils
@@ -23,7 +24,7 @@ def clean_data(thisdata):
     - extracts datetime information and rounds to 10ms
     - sorts events from the same 10ms by (1) foreground, (2) background
     '''
-
+    utils.logger("Cleaning data", level = 1)
     thisdata = thisdata.dropna(subset=[columns.raw_record_type, columns.raw_date_logged])
     if len(thisdata)==0:
         return(thisdata)
@@ -40,6 +41,7 @@ def clean_data(thisdata):
     thisdata['dt_logged'] = thisdata.apply(utils.get_dt,axis=1)
     thisdata['action'] = thisdata.apply(utils.get_action,axis=1)
     thisdata = thisdata.sort_values(by=['dt_logged', 'action']).reset_index(drop=True)
+
     return thisdata.drop(['action'],axis=1)
 
 def get_timestamps(curtime, prevtime=False, row=None, precision=60):
@@ -129,15 +131,20 @@ def extract_usage(dataframe,precision=3600):
             columns.prep_duration_seconds,
             columns.prep_record_type]
 
-    alldata = pd.DataFrame()
+    other_interactions = {
+        interactions.screen_non_interactive : "Screen Non-interactive",
+        interactions.screen_interactive: "Screen Interactive",
+        interactions.notification_seen: "Notification Seen",
+        interactions.notification_interruption: "Notification Interruption"
+    }
+
+    alldata = []
     rawdata = clean_data(dataframe)
     openapps = {}
     latest_unbackgrounded = False
 
-    steps = int(len(rawdata)/50)
-
     for idx, row in rawdata.iterrows():
-
+        
         interaction = row[columns.raw_record_type]
         app = row[columns.full_name]
 
@@ -149,6 +156,8 @@ def extract_usage(dataframe,precision=3600):
             openapps[app] = {"open" : True,
                              "time": curtime}
 
+            # iterate through older apps
+            # if the app isn't the old app, then it's no longer opened, so "close" all of the other apps
             for olderapp, appdata in openapps.items():
                 
                 if app == olderapp:
@@ -163,6 +172,7 @@ def extract_usage(dataframe,precision=3600):
 
                     openapps[olderapp]['open'] = False
 
+        # if it's an app in the background
         if interaction == interactions.background:
 
             if latest_unbackgrounded and app == latest_unbackgrounded['unbgd_app']:
@@ -174,7 +184,7 @@ def extract_usage(dataframe,precision=3600):
 
                     timepoints[columns.prep_record_type] = 'App Usage'
 
-                    alldata = pd.concat([alldata,timepoints], sort=False)
+                    alldata.append(timepoints)
 
                     openapps[app]['open'] = False
 
@@ -193,7 +203,7 @@ def extract_usage(dataframe,precision=3600):
 
                 timepoints[columns.prep_record_type] = 'App Usage'
 
-                alldata = pd.concat([alldata,timepoints], sort=False)
+                alldata.append(timepoints)
                 
                 openapps[app]['open'] = False
 
@@ -214,34 +224,18 @@ def extract_usage(dataframe,precision=3600):
                     
                     timepoints[columns.prep_record_type] = 'Power Off'
 
-                    alldata = pd.concat([alldata,timepoints], sort=False)
+                    alldata.append(timepoints)
                     
                     openapps[app] = {'open': False}
-            
-        if interaction == interactions.notification_seen:
-            timepoints = get_timestamps(curtime, precision=precision, row=row)
-            timepoints[columns.prep_record_type] = 'Notification Seen'
-            
-            alldata = pd.concat([alldata,timepoints], sort=False)
-            
-        if interaction == interactions.notification_interruption:
-            timepoints = get_timestamps(curtime, precision=precision, row=row)
-            timepoints[columns.prep_record_type] = 'Notification Interruption'
-            
-            alldata = pd.concat([alldata,timepoints], sort=False)
-            
-        if interaction == interactions.screen_non_interactive:
-            timepoints = get_timestamps(curtime, precision=precision, row=row)
-            timepoints[columns.prep_record_type] = 'Screen Non-interactive'
-            
-            alldata = pd.concat([alldata,timepoints], sort=False)
         
-        if interaction == interactions.screen_interactive:
+        # if the interaction is a part of screen non/interactive or notifications...
+        # logic should be the same
+        if interaction in other_interactions.keys():
             timepoints = get_timestamps(curtime, precision=precision, row=row)
-            timepoints[columns.prep_record_type] = 'Screen Interactive'
-            
-            alldata = pd.concat([alldata,timepoints], sort=False)
+            timepoints[columns.prep_record_type] = other_interactions[interaction]
+            alldata.append(timepoints)
 
+    alldata = pd.concat(alldata, axis = 0)
     if len(alldata)>0:
         alldata = alldata.sort_values(by=[columns.prep_datetime_start, columns.prep_datetime_end]).reset_index(drop=True)
         cols_to_select = list(set(cols).intersection(set(alldata.columns)))
@@ -307,10 +301,12 @@ def log_exceed_durations_minutes(row, threshold, outfile):
 
 def preprocess_dataframe(dataframe, precision=3600,sessioninterval = [5*60], logdir=None, logopts={}):
     dataframe = utils.backwards_compatibility(dataframe)
+    utils.logger("LOG: Extracting usage...",level=1)
     tmp = extract_usage(dataframe,precision=precision)
     if not isinstance(tmp,pd.DataFrame) or np.sum(tmp[columns.prep_duration_seconds]) == 0:
         return None
         utils.logger("WARNING: File %s does not seem to contain relevant data.  Skipping..."%filename)
+    utils.logger("LOG: checking overlap session...",level=1)
     data = check_overlap_add_sessions(tmp,session_def=sessioninterval)
     data = utils.add_warnings(data)
     non_timed = tmp[tmp[columns.prep_duration_seconds].isna()]
