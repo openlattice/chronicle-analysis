@@ -8,7 +8,7 @@ The program is written using docker.  This makes is straightforward to use and o
 
 After installing, get the chronicle docker container.  Go to a terminal:
 
-    docker pull openlattice/chroniclepy:v1.7
+    docker pull openlattice/chroniclepy:v1.8
 
 This will pull our container from https://hub.docker.com/r/openlattice/chroniclepy/.  If that worked, you're ready to preprocess your data !
 
@@ -25,7 +25,7 @@ To run the data processing, run in the terminal:
 
     docker run \
       -v /Users/openlattice/chroniclepy/examples/:/Users/openlattice/chroniclepy/examples/ \
-      openlattice/chroniclepy:v1.7 \
+      openlattice/chroniclepy:v1.8 \
       all \
       /Users/openlattice/chroniclepy/examples/rawdata \
       /Users/openlattice/chroniclepy/examples/preprocessed \
@@ -39,7 +39,7 @@ If you'd want to set a folder as an environment variable for easier readability,
 
     docker run \
       -v $FOLDER:$FOLDER \
-      openlattice/chroniclepy:v1.7 \
+      openlattice/chroniclepy:v1.8 \
       all \
       $FOLDER/rawdata \
       $FOLDER/preprocessed \
@@ -182,8 +182,10 @@ If a subsetfile is provided, the output summary files will have a prefix equal t
 
 Whenever we release a new version, we also build a new container and push it up to dockerhub.
 
+If credentials are not stored, use `docker login` first.
+
       docker build -t openlattice/chroniclepy . --no-cache
       docker push openlattice/chroniclepy
-      docker build -t openlattice/chroniclepy:v1.7 .
-      docker push openlattice/chroniclepy:v1.7
+      docker build -t openlattice/chroniclepy:v1.8 .
+      docker push openlattice/chroniclepy:v1.8
 
