@@ -26,6 +26,7 @@ def clean_data(thisdata):
     '''
     utils.logger("Cleaning data", level = 1)
     thisdata = thisdata.dropna(subset=[columns.raw_record_type, columns.raw_date_logged])
+    thisdata = thisdata.drop_duplicates(ignore_index = True)
     if len(thisdata)==0:
         return(thisdata)
     thisdata = thisdata[thisdata[columns.raw_record_type] != 'Usage Stat']
